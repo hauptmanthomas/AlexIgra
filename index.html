@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alexova pustolovščina</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 5%,#314150,#101923 78%);color:#eef5f8;display:grid;place-content:center;padding:12px}
+.wrap{width:min(100%,1120px)}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+h1{margin:0;font-size:clamp(18px,3vw,26px)}
+button,.action{cursor:pointer;border:1px solid #93afbf;background:linear-gradient(#496b84,#28455f);color:#fff;border-radius:10px;padding:10px 15px;font-weight:800}
+button:hover,.action:hover{filter:brightness(1.12)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #ffdf88;outline-offset:2px}
+.frame{position:relative;border:3px solid #7d99a9;border-radius:14px;overflow:hidden;background:#a6cad0;box-shadow:0 24px 60px #0008}
+canvas{display:block;width:100%;height:auto;aspect-ratio:16/9}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#061522b5;backdrop-filter:blur(3px);padding:12px}
+.overlay[hidden]{display:none}
+.panel{max-width:500px;width:100%;background:linear-gradient(165deg,#29435a,#122433);border:1px solid #90afc1;border-radius:18px;padding:clamp(16px,3vw,28px);box-shadow:0 16px 44px #0008}
+.panel h2{margin:0 0 8px;font-size:25px}.panel p{margin:0 0 14px;color:#d6e6ec;line-height:1.45}
+.field{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin:12px 0}
+.field label{font-weight:800}.field output{font-weight:900;color:#ffd980}
+.field input[type=range], .field select{grid-column:1/-1;width:100%}
+.field input[type=range]{accent-color:#ebb963}
+.field select,.answer{padding:11px 12px;border:1px solid #95b3c4;border-radius:10px;background:#0d2135;color:#fff;font-size:16px}
+.action{width:100%;background:linear-gradient(#f6cd77,#d99228);border:0;color:#28303c;font-size:17px;margin-top:8px;padding:12px}
+.question{font-size:clamp(28px,6vw,46px);font-weight:900;text-align:center;margin:12px 0 15px;color:#ffdc8c;letter-spacing:1px}
+.feedback{min-height:24px;margin:10px 0 0;color:#ffb39a;font-weight:700;text-align:center}
+.note{margin:11px 2px 0;text-align:center;color:#d4e3ea;line-height:1.5;font-size:13px}
+@media (max-width:540px){body{padding:6px}.panel{padding:14px}.bar button{padding:8px 10px;font-size:12px}.note{font-size:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <h1>🌲 Alexova pustolovščina — 2 stopnji</h1>
+    <button id="musicButton" type="button">🔊 Vklopi glasbo</button> <button id="menuButton" type="button">⚙ Nastavitve / nova igra</button>
+  </div>
+  <div class="frame">
+    <canvas id="game" width="960" height="540"></canvas>
+    <div class="overlay" id="menuOverlay">
+      <div class="panel">
+        <h2 id="menuTitle">Alexova pustolovščina</h2>
+        <p id="menuDescription">Dve stopnji z mačko, vilama, pošastmi in čarobnimi drevesi. Pri čarobnih drevesih zbiraj črke angleške besede, ki jo sestaviš ob koncu stopnje. V prvi stopnji razišči podzemni rov in po zastavi odkleni zaklad z enkratnim ščitom. Za glasbo klikni 🔊 Vklopi glasbo.</p>
+        <div class="field"><label for="difficulty">Težavnost</label><select id="difficulty"><option value="easy">Lahka</option><option value="normal" selected>Srednja</option><option value="hard">Težka</option><option value="custom">Po meri</option></select></div>
+        <div class="field"><label for="monsters">Pošasti na stopnjo</label><output id="monsterCount">3</output><input id="monsters" type="range" min="0" max="10" value="3"></div>
+        <div class="field"><label for="traps">Pasti na stopnjo</label><output id="trapCount">2</output><input id="traps" type="range" min="0" max="8" value="2"></div>
+        <button class="action" id="startButton" type="button">▶ Začni igro</button>
+      </div>
+    </div>
+    <div class="overlay" id="questionOverlay" hidden>
+      <div class="panel">
+        <h2>🌳 Čarobno drevo</h2>
+        <p>Naloge se izmenjujejo: poštevanka, seštevanje / odštevanje in deljenje brez ostanka. Za rešitev dobiš črke skrivne angleške besede in mačka dobi hrano.</p>
+        <div class="question" id="questionText">125 + 45 = ?</div>
+        <form id="answerForm">
+          <label for="answer">Tvoj odgovor</label>
+          <input class="answer" id="answer" type="number" step="1" inputmode="numeric" autocomplete="off" required placeholder="Vpiši celo število">
+          <p class="feedback" id="feedback"></p>
+          <button class="action" type="submit">Preveri odgovor ↵</button>
+        </form>
+      </div>
+    </div>
+    <div class="overlay" id="fairyOverlay" hidden>
+      <div class="panel">
+        <h2>🧚 Vila v čarobnem grmu</h2>
+        <p>Prevedi angleški <b>samostalnik</b> v slovenščino. Če ne veš, uporabi namig ali pokaži rešitev. Za pravilen odgovor dobiš <b id="fairyPrize">fedre za višji in daljši skok</b>.</p>
+        <div class="question" id="fairyWordText">sun</div>
+        <form id="fairyForm">
+          <label for="fairyAnswer">Prevod v slovenščino</label>
+          <input class="answer" id="fairyAnswer" type="text" autocomplete="off" required placeholder="Npr. sonce">
+          <p class="feedback" id="fairyFeedback" aria-live="polite"></p>
+          <div style="display:flex;gap:9px;margin:6px 0 10px"><button id="fairyHint" type="button" style="flex:1">💡 Namig</button><button id="fairyReveal" type="button" style="flex:1">👁 Pokaži rešitev</button></div>
+          <button class="action" type="submit">Oddaj odgovor ↵</button>
+        </form>
+      </div>
+    </div>
+    <div class="overlay" id="wordOverlay" hidden>
+      <div class="panel">
+        <h2>🔤 Čarobna beseda</h2>
+        <p>Zbral si črke pri čarobnih drevesih. Iz njih sestavi preprosto angleško besedo, da zaključiš stopnjo.</p>
+        <div class="question" id="letterTiles" style="letter-spacing:7px;font-size:36px"></div>
+        <form id="wordForm">
+          <label for="wordAnswer">Angleška beseda</label>
+          <input class="answer" id="wordAnswer" type="text" autocomplete="off" required placeholder="Vpiši besedo">
+          <p class="feedback" id="wordFeedback" aria-live="polite"></p>
+          <div style="display:flex;gap:9px;margin:6px 0 10px"><button id="wordHint" type="button" style="flex:1">💡 Namig</button><button id="wordReveal" type="button" style="flex:1">👁 Rešitev</button></div>
+          <button class="action" type="submit">Preveri besedo ↵</button>
+        </form>
+      </div>
+    </div>
+    <div class="overlay" id="treasureOverlay" hidden>
+      <div class="panel">
+        <h2>🗝️ Zaklad v podzemnem rovu</h2>
+        <p>Kateri državi pripada ta zastava? Vpiši ime države in odkleni <b>čarobni ščit</b>.</p>
+        <div id="flagPicture" style="height:132px;width:210px;max-width:100%;margin:12px auto;border:3px solid #f9e8b5;box-shadow:0 5px 16px #0008;overflow:hidden;border-radius:5px;background:white" aria-label="Zastava države"></div>
+        <form id="treasureForm">
+          <label for="countryAnswer">Ime države (slovensko)</label>
+          <input class="answer" id="countryAnswer" type="text" autocomplete="off" required placeholder="Npr. Italija">
+          <p class="feedback" id="treasureFeedback" aria-live="polite"></p>
+          <button class="action" type="submit">Odkleni skrinjo ↵</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="note"><b>Premik:</b> ← → / A D &nbsp; | &nbsp; <b>Skok:</b> preslednica / W / ↑ &nbsp; | &nbsp; <b>R:</b> uporabi ščit &nbsp; | &nbsp; <b>N:</b> ponovi stopnjo &nbsp; | &nbsp; <b>Esc:</b> meni<br>Ko se ustaviš, se mačka počasi smuka okoli tebe. Ko hodiš, ti sledi. Po pravilni nalogi dobi mačka skodelico hrane. Vili sprašujeta samo po samostalnikih, z namigi in možnostjo prikaza rešitve. Prva vila podari fedre za skok, druga hitrejšo hojo. Ježevca ne smeš pohoditi, črv pa občasno prileze iz tal. V rovu so 3 fiksne pasti in skrinja z zastavo.</div>
+</div>
+<script>
+
+'use strict';
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const menuOverlay = document.getElementById('menuOverlay');
+const questionOverlay = document.getElementById('questionOverlay');
+const fairyOverlay = document.getElementById('fairyOverlay');
+const treasureOverlay=document.getElementById('treasureOverlay');
+const countryAnswer=document.getElementById('countryAnswer');
+const treasureFeedback=document.getElementById('treasureFeedback');
+const flagPicture=document.getElementById('flagPicture');
+const menuTitle = document.getElementById('menuTitle');
+const menuDescription = document.getElementById('menuDescription');
+const difficultyEl = document.getElementById('difficulty');
+const monstersEl = document.getElementById('monsters');
+const trapsEl = document.getElementById('traps');
+const monsterCount = document.getElementById('monsterCount');
+const trapCount = document.getElementById('trapCount');
+const answerInput = document.getElementById('answer');
+const feedback = document.getElementById('feedback');
+const fairyAnswer = document.getElementById('fairyAnswer');
+const musicButton=document.getElementById('musicButton');
+const fairyPrize=document.getElementById('fairyPrize');
+const fairyFeedback = document.getElementById('fairyFeedback');
+const fairyWordText = document.getElementById('fairyWordText');
+const wordOverlay=document.getElementById('wordOverlay');
+const wordAnswer=document.getElementById('wordAnswer');
+const wordFeedback=document.getElementById('wordFeedback');
+const letterTiles=document.getElementById('letterTiles');
+
+const W=960,H=540,GROUND=472,GRAVITY=0.58;
+const keys = new Set();
+const presets={easy:[1,0],normal:[3,2],hard:[6,5]};
+let state='menu', stage=0, frame=0, cam=0, levelLength=3000, player, cat, lives=3, score=0;
+let coins=[], enemies=[], hedgehogs=[], worms=[], traps=[], gates=[], fairyBushes=[], platforms=[], particles=[], question=null, collected=0, checkpoint=40, reward=null, fairyQuestion=null;
+let audioCtx=null, musicStarted=false, musicOn=false, musicTimer=null, musicNext=0, musicStep=0, featherBuff=0, speedBuff=0, mathIndex=0;
+let vocabDeck=[], lastVocabIndex=-1, earnedLetters=[], wordSolved=false;
+const secretWords=[{word:'CAT',parts:['A','TC'],hint:'Domača žival, ki mijavka (angleško).'}, {word:'APPLE',parts:['PL','A','PE'],hint:'Sadje, ki raste na jablani (angleško).'}];
+let inTunnel=false, tunnelDone=false, chestOpened=false, shieldState='none', shieldUntil=0, treasureQuestion=null;
+const TUNNEL_LENGTH=865, TUNNEL_CEILING=270;
+const tunnelSpikes=[{x:186,y:GROUND-28,w:51,h:28,roof:false},{x:330,y:TUNNEL_CEILING,w:56,h:48,roof:true},{x:447,y:GROUND-28,w:51,h:28,roof:false}];
+const countries=[
+  {name:'Francija',answers:['francija'],svg:'<rect width="210" height="132" fill="#fff"/><rect width="70" height="132" fill="#002395"/><rect x="140" width="70" height="132" fill="#ed2939"/>'},
+  {name:'Nemčija',answers:['nemčija','nemcija'],svg:'<rect width="210" height="44" fill="#111"/><rect y="44" width="210" height="44" fill="#dd0000"/><rect y="88" width="210" height="44" fill="#ffce00"/>'},
+  {name:'Italija',answers:['italija'],svg:'<rect width="210" height="132" fill="white"/><rect width="70" height="132" fill="#009246"/><rect x="140" width="70" height="132" fill="#ce2b37"/>'},
+  {name:'Japonska',answers:['japonska'],svg:'<rect width="210" height="132" fill="white"/><circle cx="105" cy="66" r="39" fill="#bc002d"/>'},
+  {name:'Poljska',answers:['poljska'],svg:'<rect width="210" height="132" fill="white"/><rect y="66" width="210" height="66" fill="#dc143c"/>'},
+  {name:'Ukrajina',answers:['ukrajina'],svg:'<rect width="210" height="66" fill="#0057b7"/><rect y="66" width="210" height="66" fill="#ffd700"/>'},
+  {name:'Švedska',answers:['švedska','svedska'],svg:'<rect width="210" height="132" fill="#006aa7"/><rect x="64" width="23" height="132" fill="#fecc00"/><rect y="55" width="210" height="23" fill="#fecc00"/>'},
+  {name:'Avstrija',answers:['avstrija'],svg:'<rect width="210" height="132" fill="#ed2939"/><rect y="44" width="210" height="44" fill="#fff"/>'},
+  {name:'Švica',answers:['švica','svica'],svg:'<rect width="210" height="132" fill="#da291c"/><rect x="92" y="28" width="26" height="76" fill="white"/><rect x="67" y="53" width="76" height="26" fill="white"/>'}
+];
+
+const vocab = [
+  ['sun',['sonce']], ['water',['voda']], ['cat',['mačka','muca']], ['dog',['pes']], ['house',['hiša']],
+  ['tree',['drevo']], ['car',['avto','avtomobil']], ['book',['knjiga']], ['milk',['mleko']], ['apple',['jabolko']],
+  ['bird',['ptica']], ['school',['šola']], ['road',['cesta']], ['flower',['roža','cvetlica','cvet']], ['friend',['prijatelj','prijateljica']],
+  ['moon',['luna']], ['star',['zvezda']], ['sky',['nebo']], ['rain',['dež','dez']], ['snow',['sneg']],
+  ['cloud',['oblak']], ['wind',['veter']], ['fire',['ogenj']], ['river',['reka']], ['lake',['jezero']],
+  ['sea',['morje']], ['mountain',['gora']], ['forest',['gozd']], ['grass',['trava']], ['leaf',['list']],
+  ['hand',['roka']], ['head',['glava']], ['eye',['oko']], ['ear',['uho']], ['nose',['nos']],
+  ['mouth',['usta']], ['foot',['stopalo','noga']], ['hair',['lasje']], ['face',['obraz']], ['heart',['srce']],
+  ['mother',['mama','mati']], ['father',['oče','oce','ata']], ['sister',['sestra']], ['brother',['brat']], ['baby',['dojenček','dojencek']],
+  ['family',['družina','druzina']], ['child',['otrok']], ['teacher',['učitelj','ucitelj','učiteljica','uciteljica']], ['doctor',['zdravnik','zdravnica']], ['boy',['fant','deček','decek']],
+  ['girl',['dekle','deklica','punca']], ['man',['moški','moski']], ['woman',['ženska','zenska']], ['name',['ime']], ['day',['dan']],
+  ['night',['noč','noc']], ['morning',['jutro']], ['today',['danes']], ['tomorrow',['jutri']], ['yesterday',['včeraj','vceraj']],
+  ['food',['hrana']], ['bread',['kruh']], ['egg',['jajce']], ['cheese',['sir']], ['butter',['maslo']],
+  ['rice',['riž','riz']], ['soup',['juha']], ['banana',['banana']], ['orange',['pomaranča','pomaranca']], ['lemon',['limona']],
+  ['potato',['krompir']], ['tomato',['paradižnik','paradiznik']], ['fish',['riba']], ['chicken',['piščanec','piscanec']], ['meat',['meso']],
+  ['horse',['konj']], ['cow',['krava']], ['sheep',['ovca']], ['pig',['prašič','prasic']], ['duck',['raca']],
+  ['mouse',['miš','mis']], ['rabbit',['zajec']], ['bear',['medved']], ['fox',['lisica']], ['wolf',['volk']],
+  ['lion',['lev']], ['tiger',['tiger']], ['elephant',['slon']], ['monkey',['opica']], ['snake',['kača','kaca']],
+  ['bee',['čebela','cebela']], ['butterfly',['metulj']], ['spider',['pajek']], ['frog',['žaba','zaba']], ['turtle',['želva','zelva']],
+  ['bed',['postelja']], ['chair',['stol']], ['table',['miza']], ['door',['vrata']], ['window',['okno']],
+  ['room',['soba']], ['kitchen',['kuhinja']], ['garden',['vrt']], ['key',['ključ','kljuc']], ['clock',['ura']],
+  ['phone',['telefon']], ['computer',['računalnik','racunalnik']], ['pencil',['svinčnik','svincnik']], ['paper',['papir']], ['bag',['torba','vreča','vreca']],
+  ['shoe',['čevelj','cevelj']], ['hat',['klobuk']], ['shirt',['majica','srajca']], ['coat',['plašč','plasc']], ['ball',['žoga','zoga']],
+  ['game',['igra']], ['toy',['igrača','igraca']], ['music',['glasba']], ['song',['pesem']], ['picture',['slika']],
+  ['red',['rdeča','rdeca','rdeč','rdec']], ['blue',['modra','moder','modro']], ['green',['zelena','zelen','zeleno']], ['yellow',['rumena','rumen','rumeno']], ['black',['črna','crna','črn','crn']],
+  ['white',['bela','bel','belo']], ['big',['velik','velika','veliko']], ['small',['majhen','majhna','majhno']], ['happy',['srečen','srecen','srečna','srecna']], ['sad',['žalosten','zalosten','žalostna','zalostna']],
+  ['hot',['vroč','vroc','vroče','vroce']], ['cold',['mrzel','mrzlo','hladen','hladno']], ['fast',['hiter','hitra','hitro']], ['slow',['počasen','pocasen','počasna','pocasna','počasi']], ['good',['dober','dobra','dobro']],
+  ['bad',['slab','slaba','slabo']], ['new',['nov','nova','novo']], ['old',['star','stara','staro']], ['yes',['da']], ['no',['ne']],
+  ['hello',['živjo','zivjo','zdravo']], ['goodbye',['nasvidenje','adijo']], ['please',['prosim']], ['thanks',['hvala']], ['help',['pomoč','pomoc','pomagaj']],
+  ['run',['teči','teci']], ['walk',['hoditi','sprehajati se']], ['jump',['skočiti','skociti','skakati']], ['eat',['jesti']], ['drink',['piti']],
+  ['sleep',['spati']], ['read',['brati']], ['write',['pisati']], ['play',['igrati se','igrati']], ['sing',['peti']],
+  ['dance',['plesati']], ['swim',['plavati']], ['open',['odpreti']], ['close',['zapreti']], ['look',['gledati','pogledati']],
+  ['listen',['poslušati','poslusati']], ['love',['ljubezen','ljubiti']], ['smile',['nasmeh','nasmehniti se']], ['laugh',['smejati se']], ['cry',['jokati']]
+];
+// Nouns only: exclude colors/adjectives, verbs, greetings and time adverbs.
+const nounVocab=vocab.slice(0,vocab.findIndex(item=>item[0]==='red'))
+ .filter(item=>!['today','tomorrow','yesterday'].includes(item[0]));
+function nextVocab(){
+  if(vocabDeck.length===0){
+    vocabDeck=Array.from({length:nounVocab.length},(_,i)=>i);
+    for(let i=vocabDeck.length-1;i>0;i--){ const j=randInt(0,i); [vocabDeck[i],vocabDeck[j]]=[vocabDeck[j],vocabDeck[i]]; }
+    if(vocabDeck.length>1 && vocabDeck[vocabDeck.length-1]===lastVocabIndex){[vocabDeck[0],vocabDeck[vocabDeck.length-1]]=[vocabDeck[vocabDeck.length-1],vocabDeck[0]];}
+  }
+  const index=vocabDeck.pop();lastVocabIndex=index;
+  return nounVocab[index];
+}
+
+const levelSpecs=[
+  {
+    name:'Sončna dolina', length:3000,
+    sky:['#6f91ac','#d7e5dc','#efe0b6'],
+    hill1:['#b9c6c4','#90a49a','#64796a'], hill2:['#7c9489','#566d63','#40554b'], hill3:['#607766','#465c4f','#34463b'],
+    treeCount:38,
+    coins:[160,260,930,1090,1360,1620,1930,2260,2640],
+    gates:[860,2030], fairyBushes:[1475,2350], hedgehogs:[1120,2660], worms:[690,1830,2780],
+    platforms:[
+      {x:150,y:400,w:150},{x:360,y:340,w:140},{x:540,y:285,w:130},
+      {x:710,y:360,w:170},{x:960,y:310,w:150},{x:1190,y:255,w:125},
+      {x:1420,y:345,w:165},{x:1690,y:290,w:145},{x:1860,y:235,w:120},
+      {x:2130,y:360,w:160},{x:2350,y:300,w:145},{x:2560,y:245,w:120}
+    ],
+    monsters:[420,1020,1490,2170,2460,680,1760,2620,1170], traps:[610,1315,1735,2420,2820,920,2090]
+  },
+  {
+    name:'Megleni gozd', length:3200,
+    sky:['#60778a','#c9d2c5','#d8d0b8'],
+    hill1:['#9eafab','#7d948c','#61776d'], hill2:['#6a807a','#4a6058','#37473f'], hill3:['#50645b','#3a4a42','#2b3831'],
+    treeCount:48,
+    coins:[320,610,900,1210,1540,1880,2220,2550,2920],
+    gates:[650,1520,2480], fairyBushes:[1050,2050], hedgehogs:[880,2250,2980], worms:[1180,1820,2720],
+    platforms:[
+      {x:180,y:390,w:150},{x:390,y:325,w:130},{x:580,y:265,w:120},
+      {x:780,y:350,w:160},{x:1030,y:290,w:135},{x:1220,y:235,w:120},
+      {x:1470,y:365,w:165},{x:1710,y:305,w:150},{x:1900,y:250,w:120},
+      {x:2140,y:345,w:165},{x:2380,y:290,w:150},{x:2630,y:235,w:130}
+    ],
+    monsters:[500,830,1100,1780,2010,2300,2690,2910,1360], traps:[560,980,1640,2050,2440,2860,1210]
+  }
+];
+
+function syncPreset(){monsterCount.value=monstersEl.value;trapCount.value=trapsEl.value;}
+difficultyEl.addEventListener('change',()=>{if(presets[difficultyEl.value]){[monstersEl.value,trapsEl.value]=presets[difficultyEl.value]}syncPreset();});
+[monstersEl,trapsEl].forEach(el=>el.addEventListener('input',()=>{difficultyEl.value='custom';syncPreset();}));
+syncPreset();
+
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+function ellipse(x,y,rx,ry,color){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();}
+function polygon(points,color){ctx.beginPath();ctx.moveTo(points[0][0],points[0][1]);for(let i=1;i<points.length;i++)ctx.lineTo(points[i][0],points[i][1]);ctx.closePath();ctx.fillStyle=color;ctx.fill();}
+function grad(x1,y1,x2,y2,colors){const g=ctx.createLinearGradient(x1,y1,x2,y2);colors.forEach((c,i)=>g.addColorStop(i/(colors.length-1),c));return g;}
+function overlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+
+function initAudio(){
+  if(audioCtx) return;
+  try{
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    musicStarted=true;
+  }catch(e){musicButton.textContent='🔇 Zvok ni na voljo';}
+}
+function tone(freq,at,duration,volume,type='sine'){
+  if(!audioCtx||!musicOn)return;
+  const osc=audioCtx.createOscillator(), env=audioCtx.createGain();
+  osc.type=type;osc.frequency.value=freq;
+  env.gain.setValueAtTime(0.0001,at);
+  env.gain.exponentialRampToValueAtTime(volume,at+0.045);
+  env.gain.exponentialRampToValueAtTime(0.0001,at+duration);
+  osc.connect(env); env.connect(audioCtx.destination);
+  osc.start(at);osc.stop(at+duration+0.03);
+}
+function scheduleMusic(){
+  if(!audioCtx||!musicOn)return;
+  const notes=[392,440,494,523,494,440,392,349,392,440,494,440,392,349,330,349];
+  const low=[196,220,174.61,196];
+  while(musicNext<audioCtx.currentTime+0.6){
+    const n=musicStep%notes.length;
+    tone(notes[n],musicNext,0.32,0.055,'sine');
+    if(n%4===0) tone(low[Math.floor(n/4)],musicNext,1.2,0.035,'triangle');
+    musicNext+=0.43; musicStep++;
+  }
+}
+async function toggleMusic(){
+  initAudio();if(!audioCtx)return;
+  await audioCtx.resume();
+  musicOn=!musicOn;
+  if(musicOn){musicNext=audioCtx.currentTime+0.05;musicStep=0;
+    musicTimer=setInterval(scheduleMusic,140);scheduleMusic();musicButton.textContent='🔊 Glasba: VKLOP';
+  }else{clearInterval(musicTimer);musicTimer=null;musicButton.textContent='🔇 Glasba: IZKLOP';}
+}
+musicButton.addEventListener('click',toggleMusic);
+
+function makePlayer(x){return {x,y:GROUND-44,w:30,h:44,vx:0,vy:0,grounded:true,face:1,invuln:0};}
+function makeCat(x){return {x:x-32,y:GROUND-18,w:26,h:18,vx:0,vy:0,phase:0,blink:20,idleAngle:0,mood:'follow'};}
+
+function enterStage(num, resetLives=false){
+  stage=num; frame=0; cam=0; particles=[]; reward=null; collected=0; checkpoint=40; question=null; fairyQuestion=null; earnedLetters=[]; wordSolved=false; wordOverlay.hidden=true;
+  if(resetLives){ lives=3; featherBuff=0; speedBuff=0; mathIndex=0; shieldState='none'; tunnelDone=false; chestOpened=false; }
+  inTunnel=false;treasureOverlay.hidden=true;
+  if(num===0 && !resetLives){tunnelDone=false;chestOpened=false;shieldState='none';}
+  const s=levelSpecs[stage];
+  levelLength=s.length;
+  platforms=[{x:0,y:GROUND,w:levelLength,h:68,kind:'ground'}, ...s.platforms.map(p=>({...p,h:24}))];
+  player=makePlayer(40); cat=makeCat(40);
+  coins=s.coins.map(x=>({x, y:findCoinY(x), taken:false}));
+  gates=s.gates.map((x,i)=>({x,y:GROUND-205,w:58,h:205,solved:false,letterPrize:secretWords[stage].parts[i]}));
+  fairyBushes=s.fairyBushes.map((x,i)=>({x,y:GROUND-120,w:70,h:120,solved:false,prize:i===0?'jump':'speed'}));
+  hedgehogs=s.hedgehogs.map((x,i)=>({x,y:GROUND-26,w:38,h:26,min:x-65,max:x+70,dir:i%2?1:-1,speed:0.75}));
+  worms=s.worms.map((x,i)=>({x,phase:80*i+100,w:32,h:48,period:260+i*42}));
+  enemies=s.monsters.slice(0,+monstersEl.value).map((x,i)=>({x,y:findGroundYForEnemy(x),w:40,h:34,min:Math.max(40,x-80),max:Math.min(levelLength-50,x+95),speed:(1.05+(i%3)*0.2)*(difficultyEl.value==='hard'?1.25:1),dir:i%2?1:-1,alive:true}));
+  traps=s.traps.slice(0,+trapsEl.value).map(x=>({x,y:GROUND,w:50,h:22}));
+  state='playing'; menuOverlay.hidden=true; questionOverlay.hidden=true; fairyOverlay.hidden=true; keys.clear();
+}
+
+function findCoinY(x){
+  let found = null;
+  for(const p of levelSpecs[stage].platforms){ if(x>p.x && x<p.x+p.w) found = p; }
+  return found ? found.y-28 : GROUND-28;
+}
+function findGroundYForEnemy(x){
+  for(const p of levelSpecs[stage].platforms){ if(x > p.x+10 && x < p.x+p.w-10) return p.y-34; }
+  return GROUND-34;
+}
+
+function newGame(){score=0; enterStage(0,true);}
+function showMenu(title='Nastavitve igre', desc='Izberi težavnost in začni novo igro.'){
+  state='menu'; keys.clear(); questionOverlay.hidden=true; fairyOverlay.hidden=true; treasureOverlay.hidden=true; wordOverlay.hidden=true; menuOverlay.hidden=false;
+  menuTitle.textContent=title; menuDescription.textContent=desc;
+}
+
+document.getElementById('menuButton').addEventListener('click',()=>showMenu());
+document.getElementById('startButton').addEventListener('click',newGame);
+
+window.addEventListener('keydown',e=>{
+  if((state==='playing'||state==='tunnel') && ['ArrowLeft','ArrowRight','ArrowUp','Space','KeyA','KeyD','KeyW'].includes(e.code)) e.preventDefault();
+  if(e.code==='Escape'){ showMenu(); return; }
+  if((state==='playing'||state==='tunnel') && e.code==='KeyR'){ activateShield();return; }
+  if((state==='playing'||state==='tunnel') && e.code==='KeyN'){ enterStage(stage,true); return; }
+  if(state==='playing'||state==='tunnel') keys.add(e.code);
+});
+window.addEventListener('keyup',e=>keys.delete(e.code));
+window.addEventListener('blur',()=>keys.clear());
+
+function ask(gate){
+  // Every encounter gets the next type: multiplication, +/- or exact division.
+  const mode=['times','arith','divide'][mathIndex%3];mathIndex++;
+  let prompt,result;
+  if(mode==='arith'){
+    const add=Math.random()<0.5;let a,b;
+    if(add){a=randInt(20,850);b=randInt(10,1000-a);result=a+b;}
+    else{a=randInt(20,1000);b=randInt(0,a);result=a-b;}
+    prompt=`${a} ${add?'+':'−'} ${b} = ?`;
+  }else if(mode==='times'){
+    const a=randInt(1,10),b=randInt(1,10);result=a*b;prompt=`${a} × ${b} = ?`;
+  }else{
+    const divisor=randInt(2,10),answer=randInt(1,Math.floor(50/divisor));
+    const dividend=divisor*answer;result=answer;prompt=`${dividend} ÷ ${divisor} = ?`;
+  }
+  question={gate,result,mode};
+  document.getElementById('questionText').textContent=prompt;
+  feedback.textContent='Izračunaj pravilno.';feedback.style.color='#d9e7ee';
+  answerInput.value='';state='question';questionOverlay.hidden=false;keys.clear();answerInput.focus();
+}
+function askFairy(bush){
+  const [word, answers] = nextVocab();
+  fairyQuestion = {bush, word, answers};
+  fairyPrize.textContent=bush.prize==='jump'?'fedre za višji in daljši skok':'čarobne čevlje za hitrejšo hojo';
+  fairyWordText.textContent = word;
+  fairyFeedback.textContent=''; fairyFeedback.style.color='#d9e7ee'; fairyAnswer.value='';
+  state='fairy'; fairyOverlay.hidden=false; keys.clear(); fairyAnswer.focus();
+}
+
+document.getElementById('answerForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  if(state!=='question'||!question) return;
+  const value = Number(answerInput.value);
+  if(!Number.isInteger(value)){ feedback.textContent='Vnesi celo število.'; feedback.style.color='#ffb39a'; return; }
+  if(value===question.result){
+    feedback.style.color='#c9f4ba'; feedback.textContent = question.mode==='times' ? 'Pravilna poštevanka! Mačka je dobila hrano.' : 'Pravilno! Mačka je dobila hrano.';
+    question.gate.solved = true; score += 35;
+    earnedLetters.push(...question.gate.letterPrize.split(''));
+    feedback.textContent += ' Dobil si črke: '+question.gate.letterPrize.split('').join(', ')+'.';
+    reward = { x: question.gate.x+26, y: GROUND-22, time: 380, reached:false, eatTime:0 };
+    burst(question.gate.x+28, GROUND-95, '#d7ffb5', 16);
+    setTimeout(()=>{questionOverlay.hidden=true; question=null; state='playing';}, 500);
+  } else {
+    feedback.style.color='#ffb39a'; feedback.textContent='Še enkrat poskusi.'; answerInput.select();
+  }
+});
+document.getElementById('fairyHint').addEventListener('click',()=>{
+  if(state!=='fairy'||!fairyQuestion)return;
+  const a=fairyQuestion.answers[0];
+  fairyFeedback.style.color='#ffdd91';
+  fairyFeedback.textContent='Namig: '+a[0].toUpperCase()+'… ('+a.length+' črk).';
+});
+document.getElementById('fairyReveal').addEventListener('click',()=>{
+  if(state!=='fairy'||!fairyQuestion)return;
+  fairyFeedback.style.color='#d8edbd';
+  fairyFeedback.textContent='Pravilni odgovor: '+fairyQuestion.answers.join(' / ')+'. Vpiši ga v polje za nadaljevanje.';
+});
+document.getElementById('fairyForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  if(state!=='fairy'||!fairyQuestion) return;
+  const value = normalizeAnswer(fairyAnswer.value);
+  const ok = fairyQuestion.answers.some(a=>normalizeAnswer(a)===value);
+  if(ok){
+    fairyFeedback.style.color='#c9f4ba'; fairyFeedback.textContent=fairyQuestion.bush.prize==='jump'?'Pravilno! Dobiš fedre za višji skok.':'Pravilno! Dobiš čarobne čevlje za hitrejšo hojo.';
+    fairyQuestion.bush.solved=true; if(fairyQuestion.bush.prize==='jump') featherBuff=1; else speedBuff=1; score += 50; burst(fairyQuestion.bush.x+35, GROUND-110, '#ffd3ff', 20);
+    setTimeout(()=>{fairyOverlay.hidden=true; fairyQuestion=null; state='playing';}, 700);
+  } else {
+    fairyFeedback.style.color='#ffb39a'; fairyFeedback.textContent='Poskusi še enkrat.'; fairyAnswer.select();
+  }
+});
+
+function activateShield(){
+  if(shieldState!=='ready')return;
+  shieldState='active';shieldUntil=performance.now()+10000;
+  burst(player.x+15,player.y+20,'#7fe6ff',26);
+}
+function updateShield(){
+  if(shieldState==='active' && performance.now()>=shieldUntil){shieldState='spent';shieldUntil=0;}
+}
+function takeHit(){
+  if(player.invuln>0)return true;
+  if(shieldState==='active'){
+    shieldState='spent';shieldUntil=0;player.invuln=80;
+    burst(player.x+15,player.y+20,'#8deaff',25);
+    return true;
+  }
+  return false;
+}
+function enterTunnel(){
+  inTunnel=true;state='tunnel';player=makePlayer(45);cat=makeCat(45);cam=0;keys.clear();
+}
+function exitTunnel(){
+  inTunnel=false;tunnelDone=true;state='playing';player=makePlayer(805);cat=makeCat(805);cam=0;checkpoint=805;keys.clear();
+}
+function showTreasure(){
+  if(chestOpened)return;
+  treasureQuestion=countries[randInt(0,countries.length-1)];
+  flagPicture.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 210 132" preserveAspectRatio="none">'+treasureQuestion.svg+'</svg>';
+  countryAnswer.value='';treasureFeedback.textContent='';state='treasure';keys.clear();treasureOverlay.hidden=false;countryAnswer.focus();
+}
+function normalizeAnswer(s){return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');}
+document.getElementById('treasureForm').addEventListener('submit',e=>{
+  e.preventDefault();if(state!=='treasure'||!treasureQuestion)return;
+  const a=normalizeAnswer(countryAnswer.value);
+  if(treasureQuestion.answers.some(v=>normalizeAnswer(v)===a)){
+    chestOpened=true;shieldState='ready';score+=100;
+    treasureFeedback.style.color='#bdf1c2';treasureFeedback.textContent='Pravilno! Imaš ščit. Pritisni R za 10 sekund zaščite.';
+    burst(610,415,'#f5d782',22);
+    setTimeout(()=>{if(state==='treasure'){treasureOverlay.hidden=true;treasureQuestion=null;state='tunnel';}},1100);
+  }else{treasureFeedback.style.color='#ffb6a5';treasureFeedback.textContent='Ni pravilno. Poskusi znova.';countryAnswer.select();}
+});
+function burst(x,y,color,count=12){ for(let i=0;i<count;i++) particles.push({x,y,vx:(Math.random()*4)-2,vy:(Math.random()*-4)-0.6,life:18+Math.random()*18,r:2+Math.random()*3,color}); }
+function hurt(){
+  if(takeHit())return;
+  if(player.invuln>0) return;
+  lives--; player.invuln=80; burst(player.x+15,player.y+20,'#ffab97',18);
+  if(lives<=0){ showMenu('Konec igre','Pošast ali past te je premagala. Začni novo igro in poskusi znova.'); return; }
+  if(inTunnel){player=makePlayer(45);cat=makeCat(45);}else{player=makePlayer(checkpoint);cat=makeCat(checkpoint);}
+}
+function levelFinish(){
+  if(!wordSolved){
+    state='word';keys.clear();wordOverlay.hidden=false;
+    wordAnswer.value='';wordFeedback.textContent='';
+    const letters=[...earnedLetters];
+    for(let i=letters.length-1;i>0;i--){const j=randInt(0,i);[letters[i],letters[j]]=[letters[j],letters[i]];}
+    letterTiles.textContent=letters.join(' ');
+    wordAnswer.focus();return;
+  }
+  score += 120;
+  if(stage<levelSpecs.length-1){enterStage(stage+1,false);}
+  else{showMenu('Zmaga!','Bravo! Opravil si obe stopnji, rešil naloge vil in sestavil čarobni angleški besedi.');}
+}
+document.getElementById('wordHint').addEventListener('click',()=>{
+  if(state!=='word')return;wordFeedback.style.color='#ffdd91';wordFeedback.textContent=secretWords[stage].hint;
+});
+document.getElementById('wordReveal').addEventListener('click',()=>{
+  if(state!=='word')return;wordFeedback.style.color='#c9f4ba';
+  wordFeedback.textContent='Rešitev: '+secretWords[stage].word+'. Vpiši besedo za nadaljevanje.';
+});
+document.getElementById('wordForm').addEventListener('submit',e=>{
+  e.preventDefault();if(state!=='word')return;
+  if(normalizeAnswer(wordAnswer.value)===normalizeAnswer(secretWords[stage].word)){
+    wordSolved=true;wordOverlay.hidden=true;state='playing';score+=80;levelFinish();
+  }else{wordFeedback.style.color='#ffb39a';wordFeedback.textContent='To ni prava beseda. Uporabi vse zbrane črke ali klikni Namig.';wordAnswer.select();}
+});
+
+function updateCat(dt){
+  if(!cat) return;
+  cat.phase += dt*0.08; // slower overall motion
+  cat.blink -= dt; if(cat.blink <= 0) cat.blink = 55 + Math.random()*90;
+  let targetX = player.x - player.face*30, targetY = player.y + player.h - cat.h + 1; cat.mood='follow';
+  if(reward && reward.time>0){
+    cat.mood='food'; targetX = reward.x - 10; targetY = reward.y - cat.h + 3;
+    if(Math.abs(cat.x-targetX)<7){ reward.reached = true; reward.eatTime += dt; targetX = reward.x - 10 + Math.sin(frame/8)*1.0; }
+  } else if(Math.abs(player.vx)<0.2 && player.grounded){
+    cat.mood='idle'; cat.idleAngle += dt*0.028; // slower smukanje
+    targetX = player.x + Math.cos(cat.idleAngle)*(24 + Math.sin(frame/32)*4);
+    targetY = player.y + player.h - cat.h + Math.sin(cat.idleAngle*1.3)*2;
+  }
+  const dx = targetX - cat.x; cat.x += dx * (cat.mood==='food' ? 0.07*dt : 0.055*dt);
+  const dy = targetY - cat.y; cat.y += dy * 0.12*dt; cat.vx = dx;
+  if(Math.abs(cat.x - player.x) > 180 && cat.mood!=='food') cat.x = player.x - 36;
+}
+
+function update(dt){
+  frame += dt;
+  updateShield();
+  if(state==='tunnel'){updateTunnel(dt);draw();return;}
+  if(state !== 'playing'){ updateParticles(dt); draw(); return; }
+  const moveBoost = speedBuff ? 1.35 : 1;
+  const jumpBoost = featherBuff ? 1.13 : 1;
+  const speed = 4.15 * moveBoost;
+  player.vx = ((keys.has('ArrowRight')||keys.has('KeyD')) ? speed : 0) - ((keys.has('ArrowLeft')||keys.has('KeyA')) ? speed : 0);
+  if(player.vx > 0.1) player.face=1; if(player.vx < -0.1) player.face=-1;
+  if(player.grounded && (keys.has('Space')||keys.has('ArrowUp')||keys.has('KeyW'))){ player.vy=-12.2*jumpBoost; player.grounded=false; }
+  player.x = Math.max(0, Math.min(levelLength-player.w, player.x + player.vx*dt));
+  if(stage===0&&!tunnelDone&&player.x>=338){enterTunnel();draw();return;}
+
+  for(const g of gates){ if(g.solved) continue; if(player.x + player.w > g.x-4 && player.x < g.x + g.w + 4){ if(player.vx >= 0){ player.x = g.x - player.w - 5; ask(g); break; } else player.x = g.x + g.w + 5; } }
+  for(const b of fairyBushes){ if(b.solved) continue; if(player.x + player.w > b.x-4 && player.x < b.x + b.w + 4){ if(player.vx >= 0){ player.x = b.x - player.w - 5; askFairy(b); break; } else player.x = b.x + b.w + 5; } }
+  if(state!=='playing'){ updateParticles(dt); draw(); return; }
+
+  const oldBottom = player.y + player.h;
+  player.vy = Math.min(14.5, player.vy + GRAVITY*dt); player.y += player.vy*dt; player.grounded=false;
+  for(const p of platforms){ if(player.vy>=0 && oldBottom<=p.y+8 && player.y+player.h>=p.y && player.x+player.w>p.x+3 && player.x<p.x+p.w-3){ player.y=p.y-player.h; player.vy=0; player.grounded=true; if(p.x > checkpoint+200 && p.kind!=='ground') checkpoint = p.x; } }
+  if(player.y > H+70){ hurt(); }
+  if(player.invuln>0) player.invuln = Math.max(0, player.invuln-dt);
+
+  for(const e of enemies){ if(!e.alive) continue; e.x += e.speed*e.dir*dt; if(e.x < e.min || e.x+e.w > e.max){ e.x = Math.max(e.min, Math.min(e.max-e.w, e.x)); e.dir *= -1; } if(overlap(player,e)){ if(shieldState==='active'){takeHit();return;} if(player.vy>1 && oldBottom < e.y+12){ e.alive=false; player.vy=-8*(jumpBoost*0.96); score+=20; burst(e.x+18,e.y+8,'#d6b7a8',14); } else { hurt(); return; } } }
+  // Hedgehogs cannot be stomped: any contact costs one life.
+  for(const h of hedgehogs){
+    h.x+=h.speed*h.dir*dt;
+    if(h.x<h.min || h.x>h.max){h.x=Math.max(h.min,Math.min(h.max,h.x));h.dir*=-1;}
+    if(overlap(player,{x:h.x+2,y:h.y+1,w:h.w-4,h:h.h-1})){hurt();return;}
+  }
+  // Earthworms emerge periodically, then hide under the ground.
+  for(const w of worms){
+    w.phase+=dt;
+    const t=w.phase%w.period;
+    w.emerge=Math.max(0,Math.min(1,(t-60)/24,(180-t)/24));
+    if(w.emerge>0.2){
+      const wormBox={x:w.x,y:GROUND-w.h*w.emerge,w:w.w,h:w.h*w.emerge};
+      if(overlap(player,wormBox)){hurt();return;}
+    }
+  }
+  for(const t of traps){ if(overlap(player,{x:t.x+5,y:t.y-t.h+6,w:t.w-10,h:t.h-6})){ hurt(); return; } }
+  for(const c of coins){ if(!c.taken && overlap(player,{x:c.x-13,y:c.y-13,w:26,h:26})){ c.taken=true; collected++; score+=10; burst(c.x,c.y,'#ffe18e',13); } }
+  if(player.x + player.w >= levelLength-90 && collected === coins.length){ levelFinish(); return; }
+  if(reward){ reward.time -= dt; if(reward.reached && reward.eatTime>140) reward.time=0; if(reward.time<=0) reward=null; }
+  updateCat(dt); updateParticles(dt); cam = Math.max(0, Math.min(levelLength-W, player.x-320)); draw();
+}
+function updateTunnel(dt){
+  frame+=dt;
+  const speed=(speedBuff?5.6:4.15);
+  player.vx=((keys.has('ArrowRight')||keys.has('KeyD'))?speed:0)-((keys.has('ArrowLeft')||keys.has('KeyA'))?speed:0);
+  if(player.vx>0.1)player.face=1;if(player.vx<-.1)player.face=-1;
+  if(player.grounded&&(keys.has('Space')||keys.has('ArrowUp')||keys.has('KeyW'))){player.vy=-(featherBuff?13.8:12.2);player.grounded=false;}
+  player.x=Math.max(24,Math.min(TUNNEL_LENGTH-player.w,player.x+player.vx*dt));
+  const previousBottom=player.y+player.h;
+  player.vy=Math.min(13,player.vy+GRAVITY*dt);player.y+=player.vy*dt;
+  if(player.y<TUNNEL_CEILING+30){player.y=TUNNEL_CEILING+30;player.vy=Math.max(0,player.vy);}
+  if(player.y+player.h>=GROUND){player.y=GROUND-player.h;player.vy=0;player.grounded=true;}else player.grounded=false;
+  if(player.invuln>0)player.invuln=Math.max(0,player.invuln-dt);
+  for(const t of tunnelSpikes){
+    if(overlap(player,{x:t.x+6,y:t.y+(t.roof?3:2),w:t.w-12,h:t.h-4})){hurt();return;}
+  }
+  if(!chestOpened&&player.x+player.w>588){player.x=558;player.vx=0;showTreasure();return;}
+  if(player.x>785&&chestOpened){exitTunnel();return;}
+  updateCat(dt);updateParticles(dt);
+}
+function updateParticles(dt){ for(const p of particles){ p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 0.11*dt; p.life -= dt; } particles = particles.filter(p=>p.life>0); }
+
+function drawMountainRange(offsetFactor, palette, peaks){
+  ctx.save(); ctx.translate(-cam*offsetFactor,0);
+  peaks.forEach(m=>drawMountain(m.x,m.base,m.w,m.h,palette,m.ridges||3,m.snow!==false));
+  ctx.restore();
+}
+function drawMountain(x, base, w, h, palette, ridges=3, snow=true){
+  const left=x, right=x+w, peakX=x+w*0.48;
+  const body=ctx.createLinearGradient(peakX,base-h,left,base);
+  body.addColorStop(0,palette[0]); body.addColorStop(.5,palette[1]); body.addColorStop(1,palette[2]);
+  polygon([[left,base],[peakX,base-h],[right,base]], body);
+  for(let i=0;i<ridges;i++){
+    const t=i/(ridges-1||1), rx=left+w*(.18+t*.22), ry=base-h*(.35+t*.18);
+    ctx.strokeStyle = i%2===0 ? '#ffffff18' : '#00000014'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(peakX, base-h+8); ctx.quadraticCurveTo(rx, ry, left+w*(.05+t*.27), base-h*(.18+t*.07)); ctx.stroke();
+  }
+  if(snow){ polygon([[peakX-24,base-h+35],[peakX,base-h],[peakX+20,base-h+32],[peakX+6,base-h+29],[peakX-8,base-h+42]], '#eef4f6cc'); }
+}
+function drawPine(x, baseY, s, tint='#2f4a3a'){
+  ctx.save(); ctx.translate(x,baseY); ctx.scale(s,s);
+  ctx.fillStyle='#5e432d'; ctx.fillRect(-4,-26,8,26);
+  polygon([[0,-92],[-26,-52],[26,-52]], tint); polygon([[0,-74],[-30,-34],[30,-34]], tint); polygon([[0,-56],[-34,-12],[34,-12]], tint);
+  ctx.restore();
+}
+function drawFlower(x,y,petal='#f4d8e8',center='#f4cf77'){
+  for(let i=0;i<5;i++){ const a=i*Math.PI*2/5; ellipse(x+Math.cos(a)*4,y+Math.sin(a)*4,4,3,petal); }
+  ellipse(x,y,3,3,center);
+}
+function drawBackground(){
+  const s = levelSpecs[stage]; ctx.fillStyle = grad(0,0,0,H,s.sky); ctx.fillRect(0,0,W,H);
+  const glow = ctx.createRadialGradient(790,95,8,790,95,125); glow.addColorStop(0,'#fff7dcef'); glow.addColorStop(.4,'#ffeebb66'); glow.addColorStop(1,'#ffeebb00'); ctx.fillStyle=glow; ctx.fillRect(665,0,250,220);
+  for(let i=0;i<6;i++){ const x=((i*240+frame*0.1*(i%2?1:-1)-cam*0.06)%1500+1500)%1500-220; ellipse(x,88+i%3*35,75,15,'#ffffff57'); ellipse(x+35,79+i%3*35,48,21,'#ffffff57'); }
+  drawMountainRange(0.08, ['#bfc8cd','#95a5ad','#73818c'], [
+    {x:-90,base:420,w:320,h:220,ridges:4},{x:180,base:420,w:360,h:255,ridges:5},{x:500,base:420,w:330,h:210,ridges:4},{x:760,base:420,w:420,h:260,ridges:5},{x:1140,base:420,w:320,h:220,ridges:4},{x:1460,base:420,w:380,h:245,ridges:5},{x:1800,base:420,w:420,h:280,ridges:5},{x:2200,base:420,w:340,h:220,ridges:4},{x:2500,base:420,w:450,h:270,ridges:5}
+  ]);
+  drawMountainRange(0.22, ['#8ea099','#667a70','#4f615a'], [
+    {x:-50,base:448,w:260,h:140,snow:false},{x:180,base:448,w:320,h:165,snow:false},{x:470,base:448,w:300,h:140,snow:false},{x:730,base:448,w:330,h:170,snow:false},{x:1030,base:448,w:350,h:165,snow:false},{x:1350,base:448,w:300,h:150,snow:false},{x:1630,base:448,w:340,h:175,snow:false},{x:1940,base:448,w:360,h:160,snow:false},{x:2270,base:448,w:330,h:168,snow:false},{x:2560,base:448,w:350,h:160,snow:false}
+  ]);
+  ctx.save(); ctx.translate(-cam*0.52,0);
+  for(let i=0;i<s.treeCount;i++){
+    const tx=i*86+25; drawSceneryTree(tx,459,0.32+(i%4)*0.06, i%3===0);
+    if(i%5===0) drawPine(tx+36,462,0.45+(i%3)*0.04, i%2?'#375441':'#2f4a3a');
+  }
+  ctx.restore();
+  ctx.fillStyle='#d7ead533'; ctx.fillRect(0,435,W,26);
+}
+function drawSceneryTree(x,baseY,s,thin=false){
+  ctx.save(); ctx.translate(x,baseY); ctx.scale(s,s); ellipse(0,4,44,9,'#1d382e30');
+  polygon([[-10,0],[-15,-80],[-9,-148],[8,-158],[16,-78],[12,0]], grad(-18,0,20,0,['#4a3529','#8f6540','#553b2b']));
+  ctx.strokeStyle='#3b2f28'; ctx.lineWidth=3; for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(-6+i*4,-18-i*18);ctx.lineTo(-1+i*4,-32-i*18);ctx.stroke();}
+  const leaves = thin ? ['#315e49','#4c8762','#8eb684'] : ['#285640','#3d7350','#679965'];
+  for(const [dx,dy,rx,ry,k] of [[-28,-150,40,35,0],[34,-150,43,35,0],[0,-182,58,48,1],[-18,-210,40,30,1],[26,-204,42,32,1],[0,-224,26,18,2]]) ellipse(dx,dy,rx,ry,leaves[k]);
+  ctx.restore();
+}
+function drawGroundAndPlatforms(){
+  for(const p of platforms){ const x = p.x-cam; if(x+p.w<0||x>W) continue;
+    ctx.fillStyle = grad(x,p.y+7,x,p.y+p.h,['#7a6651','#4b4034','#312c28']); ctx.fillRect(x,p.y+7,p.w,p.h-7);
+    ctx.fillStyle = grad(x,p.y,x,p.y+13,['#a4cc7b','#5f8d4c','#395c38']); ctx.fillRect(x,p.y,p.w,13);
+    ctx.strokeStyle='#ceda95'; ctx.lineWidth=1.3; for(let i=12;i<p.w;i+=18){ ctx.beginPath(); ctx.moveTo(x+i,p.y+5); ctx.lineTo(x+i-4,p.y-4-(i%5)); ctx.stroke(); }
+    ctx.strokeStyle='#302a2566'; for(let i=18;i<p.w;i+=45){ ctx.beginPath(); ctx.moveTo(x+i,p.y+20); ctx.lineTo(x+i+9,p.y+27); ctx.lineTo(x+i+4,p.y+35); ctx.stroke(); }
+    if(p.kind!=='ground'){ ctx.fillStyle='#6a5846'; ctx.fillRect(x+6,p.y+p.h-4,10,10); ctx.fillRect(x+p.w-16,p.y+p.h-4,10,10); }
+  }
+}
+function drawCoin(c){ const x = c.x-cam, y = c.y + Math.sin(frame/14+c.x)*3; if(x<-30||x>W+30) return; const g = ctx.createRadialGradient(x,y,2,x,y,24); g.addColorStop(0,'#ffdc7b88'); g.addColorStop(1,'#ffdc7b00'); ellipse(x,y,24,24,g); ellipse(x,y,12,14,'#ab792e'); ellipse(x,y,10,12,'#f7d26a'); ellipse(x-3,y-3,4,7,'#fff0bd'); }
+function drawMagicTree(x,baseY,s,solved){ ctx.save(); ctx.translate(x,baseY); ctx.scale(s,s); ellipse(0,4,48,9,'#1d382e33'); polygon([[-12,0],[-17,-92],[-10,-163],[10,-174],[19,-89],[14,0]],grad(-20,0,20,0,['#493529','#8e6540','#573d2d'])); ctx.strokeStyle='#392e26'; ctx.lineWidth=3; for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(-8+i*5,-20-i*19);ctx.lineTo(-3+i*5,-33-i*19);ctx.stroke();} polygon([[-11,-8],[-36,6],[-4,0],[6,-5]],'#5a412d'); polygon([[9,-12],[35,7],[3,0]],'#6a5139'); const leaves = solved ? ['#799d56','#a7c879','#d4df95'] : ['#2a5c43','#417f57','#6ca46d']; for(const [dx,dy,rx,ry,k] of [[-41,-168,49,41,0],[44,-165,48,42,0],[0,-195,65,55,1],[-27,-221,46,35,1],[28,-215,48,37,1],[-5,-235,32,25,2]]) ellipse(dx,dy,rx,ry,leaves[k]); if(!solved){ ellipse(0,-92,26,34,'#e1bb6340'); ctx.fillStyle='#ffe5a0'; ctx.font='bold 18px system-ui'; ctx.textAlign='center'; ctx.fillText('+/−',0,-96); ctx.fillText('×',0,-74); } else { ellipse(0,-95,16,22,'#d9f6b24f'); ctx.fillStyle='#efffcf'; ctx.font='bold 19px system-ui'; ctx.textAlign='center'; ctx.fillText('✓',0,-88); } ctx.textAlign='left'; ctx.restore(); }
+function drawSquirrel(g){
+  const period=420, t=(frame+g.x*0.21)%period;
+  if(t>165)return;
+  const x=g.x+28-cam+(Math.sin(frame/23)*7),y=GROUND-236;
+  const a=Math.min(1,t/22,(165-t)/24);
+  ctx.save();ctx.globalAlpha=Math.max(0,a);
+  // A bushy tail, little paws, rounded ears and eyes peeking through the crown.
+  ellipse(x+14,y+1,13,20,'#89522d');ellipse(x+9,y-3,9,14,'#a46c3b');
+  ellipse(x-3,y+5,14,12,'#a96e3b');ellipse(x-4,y-9,11,10,'#b47a47');
+  ellipse(x-13,y-17,5,6,'#b47a47');ellipse(x+4,y-17,5,6,'#b47a47');
+  ellipse(x-7,y-8,2,2,'#1b1916');ellipse(x,y-8,2,2,'#1b1916');
+  ellipse(x-3,y-3,3,2,'#e6bb86');
+  ctx.fillStyle='#dfb887';ctx.fillRect(x-9,y+12,5,4);ctx.fillRect(x-1,y+12,5,4);
+  ctx.restore();
+}
+function drawGate(g){ const x = g.x-cam; if(x<-150||x>W+180) return; drawMagicTree(x+28, GROUND, 1.12, g.solved);drawSquirrel(g); if(!g.solved){ ctx.fillStyle='#ffeac6'; ctx.font='bold 15px system-ui'; ctx.textAlign='center'; ctx.fillText('RAČUN ali POŠTEVANKA', x+28, GROUND-266); ctx.textAlign='left'; } }
+function drawFairyBush(b){
+  const x=b.x-cam; if(x<-120||x>W+160) return;
+  ellipse(x+36,GROUND+2,42,10,'#1f332b30');
+  for(const [dx,dy,rx,ry,c] of [[12,-35,20,18,'#4f835f'],[33,-50,28,23,'#6a9c66'],[58,-38,22,19,'#558d64'],[38,-24,30,18,'#4d7d5a']]) ellipse(x+dx,GROUND+dy,rx,ry,c);
+  if(!b.solved){
+    // fairy sitting in the bush
+    ellipse(x+38,GROUND-68,12,4,'#00000020');
+    ellipse(x+38,GROUND-84,8,8,'#f3cfb6');
+    ctx.fillStyle='#cfa2f1'; rr(x+31,GROUND-78,14,16,5); ctx.fill();
+    polygon([[x+31,GROUND-74],[x+18,GROUND-84],[x+28,GROUND-66]],'#d9f6ff88'); polygon([[x+45,GROUND-74],[x+58,GROUND-84],[x+48,GROUND-66]],'#d9f6ff88');
+    ctx.fillStyle='#ffe8b4'; ctx.beginPath(); ctx.arc(x+38,GROUND-95,2.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff4d6'; ctx.font='bold 15px system-ui'; ctx.fillText(b.prize==='jump'?'vila skoka':'vila hitrosti',x-10,GROUND-104);
+  } else {
+    ctx.fillStyle='#fff1d8'; ctx.font='bold 15px system-ui'; ctx.fillText(b.prize==='jump'?'fedre ✓':'hitrost ✓',x+14,GROUND-95);
+    for(let i=0;i<3;i++){ polygon([[x+22+i*11,GROUND-80],[x+28+i*11,GROUND-96],[x+34+i*11,GROUND-82]],'#fff7e8'); }
+  }
+}
+function drawPlayer(){ if(player.invuln>0 && Math.floor(frame/5)%2===0) return; const x = player.x-cam, y = player.y; ellipse(x+15,y+44,17,4,'#101b174f'); ctx.fillStyle='#3e3228'; ctx.fillRect(x+3,y+36,11,8); ctx.fillRect(x+17,y+36,11,8); ctx.fillStyle='#6b543b'; ctx.fillRect(x+(player.face>0?-4:25),y+15,8,19); ctx.fillStyle=grad(x,y+18,x+29,y+40,['#8ca39a','#355969','#1e3747']); rr(x+2,y+16,25,22,5); ctx.fill(); ctx.fillStyle='#c79c7c'; ctx.fillRect(x+3,y+21,5,13); ctx.fillStyle='#e6b898'; rr(x+5,y+4,20,19,6); ctx.fill(); ctx.fillStyle='#564336'; rr(x+3,y,23,10,4); ctx.fill(); ctx.fillRect(x,y+7,29,3); ctx.fillStyle='#242d30'; ctx.fillRect(x+(player.face>0?18:9),y+12,3,3); if(featherBuff){ ctx.fillStyle='#fff8e0'; polygon([[x-6,y+18],[x-2,y+4],[x+2,y+18]],'#fff8e0'); polygon([[x+32,y+18],[x+36,y+4],[x+40,y+18]],'#fff8e0'); } }
+function drawCat(){ if(!cat) return; const x = cat.x-cam, y = cat.y; const walk = Math.sin(frame/8) * Math.min(1, Math.abs(cat.vx)/18); const tail = cat.mood==='idle' ? Math.sin(frame/14)*0.45 : Math.sin(frame/7)*0.32; ellipse(x+13,y+18,16,4,'#0b10144f'); ctx.save(); ctx.translate(x,y); ctx.fillStyle='#111416'; rr(4,6+walk*0.4,22,10,6); ctx.fill(); rr(10,0,12,11,5); ctx.fill(); polygon([[11,2],[14,-4],[16,3]],'#111416'); polygon([[18,2],[22,-4],[22,4]],'#111416'); ctx.strokeStyle='#111416'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(24,10); ctx.quadraticCurveTo(34,3+tail*3,30,-9+tail*8); ctx.stroke(); ctx.fillStyle='#79d07b'; if(cat.blink > 6){ ctx.fillRect(13,4,2,2); ctx.fillRect(18,4,2,2); } else { ctx.fillRect(13,5,2,1); ctx.fillRect(18,5,2,1); } ctx.fillStyle='#d9b18c'; ctx.fillRect(15,8,3,2); ctx.strokeStyle='#84878a'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(14,9); ctx.lineTo(8,8); ctx.moveTo(14,10); ctx.lineTo(8,11); ctx.moveTo(19,9); ctx.lineTo(25,8); ctx.moveTo(19,10); ctx.lineTo(25,11); ctx.stroke(); ctx.fillStyle='#0d1114'; ctx.fillRect(7,16+(walk>0?0:0.8),3,6); ctx.fillRect(12,16+(walk<0?0:0.8),3,6); ctx.fillRect(18,16+(walk<0?0:0.8),3,6); ctx.fillRect(23,16+(walk>0?0:0.8),3,6); if(reward && reward.reached){ ctx.fillStyle='#fff5c8'; ctx.font='bold 11px system-ui'; ctx.fillText('mnjam', -2, -8); } ctx.restore(); }
+function drawMonster(e){ const x=e.x-cam,y=e.y; if(x<-45||x>W+45) return; ellipse(x+20,y+35,22,5,'#10241d66'); polygon([[x+30,y+14],[x+45,y+4],[x+38,y+24]],'#665046'); polygon([[x+4,y+12],[x+8,y-4],[x+18,y+8]],'#5c4541'); polygon([[x+23,y+8],[x+30,y-4],[x+36,y+12]],'#5c4541'); ctx.fillStyle=grad(x,y,x,y+35,['#af8474','#71534e','#483839']); rr(x,y+8,39,27,12); ctx.fill(); ellipse(x+11,y+19,5,5,'#f8edda'); ellipse(x+28,y+19,5,5,'#f8edda'); ellipse(x+12,y+20,2,3,'#1d2422'); ellipse(x+27,y+20,2,3,'#1d2422'); ctx.fillStyle='#f7e7dc'; for(let i=0;i<3;i++) polygon([[x+13+i*5,y+28],[x+17+i*5,y+28],[x+15+i*5,y+33]], '#f7e7dc'); }
+function drawTrap(t){ const x=t.x-cam; if(x+t.w<0||x>W) return; for(let i=0;i<t.w;i+=12){ const k=Math.min(12,t.w-i); polygon([[x+i,t.y],[x+i+k/2,t.y-t.h],[x+i+k,t.y]],'#444c4e'); polygon([[x+i+k/2,t.y-t.h],[x+i+k,t.y],[x+i+k/2,t.y-2]],'#b6c2c0'); } ctx.fillStyle='#514335'; ctx.fillRect(x,t.y,t.w,5); }
+function drawHedgehog(h){
+  const x=h.x-cam,y=h.y;
+  if(x<-50||x>W+50)return;
+  ellipse(x+18,y+25,20,4,'#17211855');
+  ellipse(x+18,y+15,19,11,'#76543f');
+  for(let i=0;i<11;i++){
+    const xx=x+i*3.5;
+    polygon([[xx,y+15],[xx+2,y-4-(i%3)*3],[xx+6,y+13]],i%2?'#514339':'#352f2b');
+  }
+  ellipse(x+30,y+17,8,8,'#b69b78');
+  ellipse(x+33,y+14,2,2,'#16191b');ellipse(x+37,y+20,3,2,'#2b2424');
+}
+function drawWorm(w){
+  const x=w.x-cam, rise=w.emerge||0;
+  if(x<-50||x>W+50)return;
+  ellipse(x+17,GROUND,22,5,'#37291f');
+  if(rise<=0)return;
+  const top=GROUND-w.h*rise;
+  ctx.fillStyle='#a85d73';rr(x,top,w.w,w.h*rise,11);ctx.fill();
+  ctx.strokeStyle='#d98fa1';ctx.lineWidth=2;
+  for(let i=1;i<4;i++){const y=GROUND-i*11;if(y>top+6){ctx.beginPath();ctx.moveTo(x+4,y);ctx.lineTo(x+w.w-4,y);ctx.stroke();}}
+  ellipse(x+9,top+12,3,3,'#241c23');ellipse(x+23,top+12,3,3,'#241c23');
+}
+function drawReward(){ if(!reward) return; const x=reward.x-cam, y=reward.y; ellipse(x+2,y+10,18,5,'#00000024'); ctx.fillStyle='#875d38'; rr(x-10,y+2,24,12,3); ctx.fill(); ctx.fillStyle='#d3b58b'; rr(x-12,y,24,6,3); ctx.fill(); ctx.fillStyle='#6b431f'; ctx.fillRect(x-7,y-3,18,5); ctx.fillStyle='#e5d48e'; ctx.fillRect(x-5,y-6,6,5); ctx.fillRect(x+1,y-5,6,4); ctx.fillRect(x+6,y-7,4,5); if(reward.time>0 && !reward.reached){ ctx.fillStyle='#fff6d1'; ctx.font='bold 12px system-ui'; ctx.fillText('hrana', x-10, y-13); } }
+function drawFinishFlag(){ const x=levelLength-75-cam, ready=collected===coins.length; ctx.fillStyle='#514735'; ctx.fillRect(x,GROUND-110,7,110); polygon([[x+7,GROUND-108],[x+52,GROUND-94],[x+7,GROUND-77]], ready?'#f4b84c':'#93a3a3'); ellipse(x+3,GROUND-109,5,5,'#efe3b8'); if(!ready){ ctx.fillStyle='#233b3ecc'; ctx.fillRect(x-96,GROUND-164,138,28); ctx.fillStyle='#fff'; ctx.font='13px system-ui'; ctx.fillText('Zberi vse kovance', x-89, GROUND-145); } }
+function drawForeground(){
+  for(let i=0;i<28;i++){
+    const x=i*125+18-cam; if(x<-12||x>W+12) continue;
+    for(let j=0;j<5;j++){ ctx.strokeStyle=j%2?'#376946':'#467b4a'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(x+j*6,GROUND+2); ctx.lineTo(x+j*6-3,GROUND-8-j%3*4); ctx.stroke(); }
+    if(i%3===0){ drawFlower(x+12,GROUND-9,'#f7d6e6','#f2c76b'); drawFlower(x+20,GROUND-12,'#e6dcff','#f0cb74'); }
+    if(i%7===0) drawPine(x+30,GROUND+1,0.28,i%2?'#36503e':'#2a4334');
+  }
+}
+function drawParticles(){ for(const p of particles){ ctx.globalAlpha=Math.min(1,p.life/22); ellipse(p.x-cam,p.y,p.r,p.r,p.color); } ctx.globalAlpha=1; }
+function drawTunnel(){
+  ctx.fillStyle=grad(0,0,0,H,['#161c23','#2c2d2c','#171617']);ctx.fillRect(0,0,W,H);
+  // Jagged cave rock and bands of stone.
+  ctx.fillStyle='#3d3e3b';ctx.fillRect(0,0,W,TUNNEL_CEILING);
+  for(let i=0;i<29;i++){
+    const x=i*35;
+    polygon([[x,TUNNEL_CEILING-40+(i%3)*8],[x+22,TUNNEL_CEILING-23+(i%4)*5],[x+37,TUNNEL_CEILING-40+(i%3)*8]],i%2?'#343633':'#4d4e46');
+  }
+  for(let i=0;i<70;i++){
+    const x=(i*137)%960, y=20+(i*71)%(TUNNEL_CEILING-50);
+    ctx.strokeStyle=i%2?'#252725':'#68645a';ctx.lineWidth=i%3+1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+18+(i%6)*4,y+5);ctx.stroke();
+  }
+  ctx.fillStyle='#675b4b';ctx.fillRect(0,GROUND,W,H-GROUND);
+  ctx.fillStyle='#988165';ctx.fillRect(0,GROUND,W,9);
+  for(let i=0;i<45;i++){ellipse((i*83)%W,480+(i%4)*11,5+i%3,2+i%2,'#4e473d');}
+  // Lanterns and occasional glowing crystals.
+  for(const x of [98,290,530,760]){
+    ellipse(x,TUNNEL_CEILING-2,21,26,'#e4c16a22');ctx.fillStyle='#65583a';ctx.fillRect(x-4,TUNNEL_CEILING-11,8,14);
+    ellipse(x,TUNNEL_CEILING-9,4,7,'#ffdc85');
+  }
+  ctx.fillStyle='#d2c0a0';ctx.font='bold 19px system-ui';ctx.fillText('PODZEMNI ROV',23,125);
+  ctx.font='14px system-ui';ctx.fillText('3 fiksne pasti • poišči zaklad',23,146);
+  for(const t of tunnelSpikes){
+    for(let i=0;i<t.w;i+=13){const x=t.x+i,k=Math.min(13,t.w-i);
+      polygon(t.roof?[[x,t.y],[x+k/2,t.y+t.h],[x+k,t.y]]:[[x,t.y+t.h],[x+k/2,t.y],[x+k,t.y+t.h]],'#aab5b4');
+      ctx.strokeStyle='#495153';ctx.lineWidth=1;ctx.stroke();
+    }
+  }
+  const chestX=606,chestY=GROUND-29;
+  ellipse(chestX+28,chestY+29,40,6,'#0c0a084d');
+  ctx.fillStyle=chestOpened?'#6a5033':'#80542f';rr(chestX,chestY,56,29,5);ctx.fill();
+  ctx.fillStyle='#c49a46';ctx.fillRect(chestX+7,chestY+3,8,26);ctx.fillRect(chestX+41,chestY+3,8,26);
+  ctx.fillStyle='#efca69';ctx.fillRect(chestX+23,chestY+10,10,13);
+  if(chestOpened){polygon([[chestX,chestY],[chestX+10,chestY-18],[chestX+64,chestY-18],[chestX+56,chestY]],'#aa7b3b');}
+  else{ctx.fillStyle='#f2db9c';ctx.font='bold 15px system-ui';ctx.fillText('ZAKLAD',chestX-9,chestY-15);}
+  ctx.fillStyle='#2f6b54';rr(800,390,50,82,12);ctx.fill();ctx.fillStyle='#dfd1a2';ctx.font='12px system-ui';ctx.fillText('IZHOD',805,384);
+  drawPlayer();drawCat();drawParticles();drawHUD();drawShield();
+}
+function drawShield(){
+  if(shieldState!=='active')return;
+  const x=player.x-(inTunnel?0:cam)+player.w/2,y=player.y+player.h/2;
+  const pulse=3*Math.sin(frame/5);ellipse(x,y,32+pulse,47+pulse,'#65d7ff24');
+  ctx.beginPath();ctx.ellipse(x,y,33+pulse,48+pulse,0,0,Math.PI*2);
+  ctx.strokeStyle='#70dcff';ctx.lineWidth=3;ctx.stroke();
+}
+function drawHUD(){ ctx.fillStyle='#0c2535c6'; rr(12,12,730,52,13); ctx.fill(); ctx.fillStyle='#fff1dc'; ctx.font='bold 19px system-ui'; ctx.fillText(`Stopnja ${stage+1}/2`,26,43); ctx.fillText(`🪙 ${collected}/${coins.length}`,170,43); ctx.fillText('♥'.repeat(lives),285,43); ctx.font='15px system-ui'; ctx.fillText(`Točke: ${score}`,395,42); ctx.fillText('🐈 mačka', 515,42); ctx.fillText((featherBuff?'🪶':'')+(speedBuff?'⚡':''), 650,42); ctx.fillStyle='#123447bd'; rr(760,15,184,36,10); ctx.fill(); ctx.font='bold 15px system-ui'; ctx.fillStyle='#f7eac9'; ctx.fillText(levelSpecs[stage].name,774,39); ctx.fillStyle='#172d3baa'; ctx.fillRect(14,74,240,8); ctx.fillStyle='#efc373'; ctx.fillRect(14,74,240*Math.min(1,player.x/levelLength),8);ctx.fillStyle='#0c2535d9';rr(15,93,340,33,8);ctx.fill();ctx.fillStyle='#f9eccf';ctx.font='bold 14px system-ui';const secs=Math.max(0,Math.ceil((shieldUntil-performance.now())/1000));ctx.fillText(shieldState==='ready'?'🛡 ŠČIT PRIPRAVLJEN – pritisni R':shieldState==='active'?`🛡 ŠČIT AKTIVEN: ${secs} s`:shieldState==='spent'?'🛡 Ščit porabljen':'🛡 Ščit: poišči zaklad',28,115); }
+function drawLetters(){
+  if(inTunnel||!earnedLetters.length)return;
+  ctx.fillStyle='#092536bc';rr(15,135,300,31,8);ctx.fill();
+  ctx.font='bold 15px system-ui';ctx.fillStyle='#ffe4a3';
+  ctx.fillText('🔤 Črke dreves: '+earnedLetters.join(' '),26,156);
+}
+function drawPortal(){
+  if(stage!==0||tunnelDone)return;
+  const x=315-cam;
+  if(x<-90||x>W+100)return;
+  ellipse(x+28,GROUND-2,43,10,'#17332355');
+  ctx.fillStyle='#766b57';rr(x-4,GROUND-92,68,93,33);ctx.fill();
+  ctx.fillStyle='#242726';rr(x+6,GROUND-81,48,81,23);ctx.fill();
+  ctx.fillStyle='#f4dd91';ctx.font='bold 14px system-ui';ctx.fillText('PODZEMNI ROV',x-22,GROUND-105);
+  ellipse(x+30,GROUND-20,7,10,'#c1aa6d40');
+}
+function draw(){if(inTunnel){drawTunnel();return;} drawBackground(); drawGroundAndPlatforms(); drawForeground();drawPortal(); coins.forEach(c=>{if(!c.taken) drawCoin(c)}); traps.forEach(drawTrap); hedgehogs.forEach(drawHedgehog); worms.forEach(drawWorm); gates.forEach(drawGate); fairyBushes.forEach(drawFairyBush); drawReward(); drawFinishFlag(); enemies.forEach(e=>{if(e.alive) drawMonster(e)}); drawPlayer(); drawCat(); drawParticles(); drawHUD();drawShield();drawLetters(); }
+let last=0; function loop(t){ const dt = Math.min(2, (t-last)/16.6667 || 1); last=t; update(dt); requestAnimationFrame(loop); }
+enterStage(0,true); state='menu'; menuOverlay.hidden=false; requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>

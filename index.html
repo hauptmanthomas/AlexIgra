@@ -335,30 +335,128 @@ musicButton.addEventListener('click',toggleMusic);
 function makePlayer(x){return {x,y:GROUND-44,w:30,h:44,vx:0,vy:0,grounded:true,face:1,invuln:0};}
 function makeCat(x){return {x:x-32,y:GROUND-18,w:26,h:18,vx:0,vy:0,phase:0,blink:20,idleAngle:0,mood:'follow'};}
 
+
+/* Level generation: build accessible paths first, then place prizes and hazards.
+   A new layout is built on every new stage or retry (N). The tunnel is fixed. */
+function shuffleItems(items){
+  for(let i=items.length-1;i>0;i--){const j=randInt(0,i);[items[i],items[j]]=[items[j],items[i]];}
+  return items;
+}
+function clampValue(value,lo,hi){return Math.max(lo,Math.min(hi,value));}
+function generateLevelLayout(spec){
+  const sea=!!spec.sea;
+  let built;
+  if(sea){
+    built=[];
+    let x=0,previousY=455;
+    spec.platforms.forEach((base,index)=>{
+      const w=index===0?196:index===spec.platforms.length-1?245:randInt(165,195);
+      let y=index===0?455:clampValue(previousY+randInt(-46,46),345,448);
+      if(index===spec.platforms.length-1)y=clampValue(previousY+randInt(-30,30),365,430);
+      built.push({x,y,w,h:24,kind:'island',index});
+      previousY=y;
+      x+=w+randInt(15,30); // gap is always shorter than a normal jump
+    });
+  }else{
+    built=spec.platforms.map((p,index)=>({
+      x:Math.max(95,p.x+randInt(-18,18)),
+      y:clampValue(p.y+randInt(-28,28),235,411),
+      w:p.w+randInt(-8,12),h:24,kind:'platform',index
+    }));
+  }
+  const length=sea?Math.ceil(built[built.length-1].x+built[built.length-1].w):spec.length;
+  // Tree locations are anchored to known platform surfaces rather than water.
+  const gateIndices=sea?[3,7,11]:[];
+  const gatePositions=sea?gateIndices.map(i=>{
+    const p=built[i];return {x:Math.round(p.x+p.w*0.48-18),y:p.y,platformIndex:i};
+  }):spec.gates.map((x,i)=>({x:clampValue(x+randInt(-25,25),i===0?820:1600,i===0?925:2160),y:GROUND,platformIndex:-1}));
+  const fairyPositions=spec.fairyBushes.map((x,i)=>({
+    x:sea?x:clampValue(x+randInt(-35,35),x-40,x+40),prize:i===0?'jump':'speed'
+  }));
+  const coinsPos=[];
+  if(sea){
+    // Every coin sits above a real, reachable island, never above open water.
+    const coinIndices=[0,1,2,4,5,6,8,10,12];
+    for(const i of coinIndices){
+      const p=built[i];
+      coinsPos.push({x:Math.round(p.x+45),y:p.y-31,platformIndex:i});
+    }
+  }else{
+    spec.coins.forEach((x,i)=>{
+      // first-stage coins should not get trapped behind the fixed tunnel portal
+      const p=built.filter(v=>x>=v.x+25&&x<=v.x+v.w-25).sort((a,b)=>a.y-b.y)[0];
+      const safeX=stage===0&&i===0?160:x+randInt(-20,20);
+      coinsPos.push({x:safeX,y:p?p.y-29:GROUND-29,platformIndex:p?p.index:-1});
+    });
+  }
+  const reserved=gatePositions.map(g=>g.x).concat(fairyPositions.map(f=>f.x));
+  const safeFromQuest=x=>reserved.every(q=>Math.abs(q-x)>100);
+  const candidates=[];
+  if(sea){
+    for(const i of [1,2,4,5,6,8,9,10,12]){
+      const p=built[i];
+      const x=Math.round(p.x+p.w-38);
+      if(safeFromQuest(x)&&coinsPos.every(c=>Math.abs(c.x-x)>62)){
+        candidates.push({x,y:p.y,platformIndex:i,left:p.x+20,right:p.x+p.w-25});
+      }
+    }
+  }else{
+    for(const x of spec.monsters.concat(spec.traps,spec.hedgehogs,spec.worms)){
+      const candidate=clampValue(x+randInt(-32,32),390,length-130);
+      if(safeFromQuest(candidate)&&candidates.every(c=>Math.abs(c.x-candidate)>46)){
+        const p=built.find(v=>candidate>=v.x+38&&candidate<=v.x+v.w-40&&v.y<GROUND-35);
+        candidates.push({x:candidate,y:p?p.y:GROUND,platformIndex:p?p.index:-1,left:p?p.x+8:candidate-70,right:p?p.x+p.w-8:candidate+85});
+      }
+    }
+    // fallback in case a random shift caused multiple candidates to overlap
+    for(let x=420;x<length-150;x+=165){
+      if(safeFromQuest(x)&&candidates.every(c=>Math.abs(c.x-x)>75))candidates.push({x,y:GROUND,platformIndex:-1,left:x-58,right:x+70});
+    }
+  }
+  shuffleItems(candidates);
+  const trapsPos=[],monsterPos=[],hedgePos=[],wormPos=[];
+  const used=[];
+  const takeCandidate=()=>{
+    for(const c of candidates){
+      if(used.some(u=>Math.abs(u.x-c.x)<(sea?100:85)))continue;
+      used.push(c);return c;
+    }
+    return null;
+  };
+  // Honour the difficulty sliders, but use valid slots only.
+  for(let i=0;i<+trapsEl.value;i++){const c=takeCandidate();if(!c)break;trapsPos.push({x:c.x-18,y:c.y,w:45,h:20});}
+  for(let i=0;i<+monstersEl.value;i++){const c=takeCandidate();if(!c)break;monsterPos.push({...c});}
+  if(!sea){
+    for(let i=0;i<Math.min(3,spec.hedgehogs.length);i++){const c=takeCandidate();if(!c)break;hedgePos.push({...c});}
+    for(let i=0;i<Math.min(3,spec.worms.length);i++){const c=takeCandidate();if(!c)break;wormPos.push({...c});}
+  }
+  return {sea,length,built,gatePositions,fairyPositions,coinsPos,trapsPos,monsterPos,hedgePos,wormPos};
+}
+
 function enterStage(num, resetLives=false){
   stage=num; frame=0; cam=0; particles=[]; reward=null; collected=0; checkpoint=40; question=null; fairyQuestion=null; earnedLetters=[]; wordSolved=false; wordOverlay.hidden=true;
   if(resetLives){ lives=3; featherBuff=0; speedBuff=0; mathIndex=0; shieldState='none'; tunnelDone=false; chestOpened=false; }
   inTunnel=false;treasureOverlay.hidden=true;
   if(num===0 && !resetLives){tunnelDone=false;chestOpened=false;shieldState='none';}
   const s=levelSpecs[stage];
-  levelLength=s.length;
-  platforms=[...(s.sea?[]:[{x:0,y:GROUND,w:levelLength,h:68,kind:'ground'}]), ...s.platforms.map(p=>({...p,h:24}))];
-  player=makePlayer(40); cat=makeCat(40);if(s.sea){player.y=s.platforms[0].y-player.h;cat.y=player.y+player.h-cat.h;megalodon={x:60,y:510};}
-  coins=s.coins.map(x=>({x, y:findCoinY(x), taken:false}));
-  gates=s.gates.map((x,i)=>({x,y:(s.sea?(s.platforms.find(p=>x>=p.x&&x<p.x+p.w)?.y||GROUND):GROUND)-205,w:58,h:205,solved:false,letterPrize:secretWords[stage].parts[i]}));
-  fairyBushes=s.fairyBushes.map((x,i)=>({x,y:GROUND-120,w:70,h:120,solved:false,prize:i===0?'jump':'speed'}));
-  hedgehogs=s.hedgehogs.map((x,i)=>({x,y:GROUND-26,w:38,h:26,min:x-65,max:x+70,dir:i%2?1:-1,speed:0.75}));
-  worms=s.worms.map((x,i)=>({x,phase:80*i+100,w:32,h:48,period:260+i*42}));
-  enemies=s.monsters.slice(0,+monstersEl.value).map((x,i)=>({x,y:findGroundYForEnemy(x),w:40,h:34,min:Math.max(40,x-80),max:Math.min(levelLength-50,x+95),speed:(1.05+(i%3)*0.2)*(difficultyEl.value==='hard'?1.25:1),dir:i%2?1:-1,alive:true}));
-  traps=s.traps.slice(0,+trapsEl.value).map(x=>({x,y:s.sea?(s.platforms.find(p=>x>=p.x&&x<p.x+p.w)?.y||GROUND):GROUND,w:50,h:22}));
+  const layout=generateLevelLayout(s);
+  levelLength=layout.length;
+  platforms=[...(s.sea?[]:[{x:0,y:GROUND,w:levelLength,h:68,kind:'ground'}]),...layout.built];
+  checkpoint=s.sea?layout.built[0].x+25:40;
+  player=makePlayer(s.sea?layout.built[0].x+25:40);cat=makeCat(player.x);
+  if(s.sea){player.y=layout.built[0].y-player.h;cat.y=player.y+player.h-cat.h;megalodon={x:player.x,y:510};}
+  coins=layout.coinsPos.map(c=>({x:c.x,y:c.y,taken:false,platformIndex:c.platformIndex}));
+  gates=layout.gatePositions.map((g,i)=>({x:g.x,y:g.y-205,w:58,h:205,solved:false,letterPrize:secretWords[stage].parts[i]}));
+  fairyBushes=layout.fairyPositions.map(f=>({x:f.x,y:GROUND-120,w:70,h:120,solved:false,prize:f.prize}));
+  hedgehogs=layout.hedgePos.map((c,i)=>({x:c.x,y:c.y-26,w:38,h:26,min:c.left,max:c.right,dir:i%2?1:-1,speed:0.75}));
+  worms=layout.wormPos.map((c,i)=>({x:c.x,phase:80*i+100,w:32,h:48,period:260+i*42}));
+  enemies=layout.monsterPos.map((c,i)=>({x:c.x,y:c.y-34,w:40,h:34,min:c.left,max:c.right,platformIndex:c.platformIndex,
+    speed:(1.05+(i%3)*0.2)*(difficultyEl.value==='hard'?1.25:1),dir:i%2?1:-1,alive:true}));
+  traps=layout.trapsPos;
   state='playing'; menuOverlay.hidden=true; questionOverlay.hidden=true; fairyOverlay.hidden=true; keys.clear();
 }
 
-function findCoinY(x){
-  let found = null;
-  for(const p of levelSpecs[stage].platforms){ if(x>p.x && x<p.x+p.w) found = p; }
-  return found ? found.y-28 : GROUND-28;
-}
+function findCoinY(x){const p=platforms.find(p=>x>=p.x+12&&x<p.x+p.w-12);return p?p.y-29:GROUND-29;}
 function findGroundYForEnemy(x){
   for(const p of levelSpecs[stage].platforms){ if(x > p.x+10 && x < p.x+p.w-10) return p.y-34; }
   return GROUND-34;

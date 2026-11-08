@@ -28,14 +28,14 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:16/9}
 .action{width:100%;background:linear-gradient(#f6cd77,#d99228);border:0;color:#28303c;font-size:17px;margin-top:8px;padding:12px}
 .question{font-size:clamp(28px,6vw,46px);font-weight:900;text-align:center;margin:12px 0 15px;color:#ffdc8c;letter-spacing:1px}
 .feedback{min-height:24px;margin:10px 0 0;color:#ffb39a;font-weight:700;text-align:center}
-.note{margin:11px 2px 0;text-align:center;color:#d4e3ea;line-height:1.5;font-size:13px}
+.note{margin:11px 2px 0;text-align:center;color:#d4e3ea;line-height:1.5;font-size:13px}.help-buttons{display:flex;gap:8px;margin:8px 0}.help-buttons button{flex:1}
 @media (max-width:540px){body{padding:6px}.panel{padding:14px}.bar button{padding:8px 10px;font-size:12px}.note{font-size:12px}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="bar">
-    <h1>🌲 Alexova pustolovščina — 2 stopnji</h1>
+    <h1>🌲 Alexova pustolovščina — 3 stopnje</h1>
     <button id="musicButton" type="button">🔊 Vklopi glasbo</button> <button id="menuButton" type="button">⚙ Nastavitve / nova igra</button>
   </div>
   <div class="frame">
@@ -58,7 +58,7 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:16/9}
         <form id="answerForm">
           <label for="answer">Tvoj odgovor</label>
           <input class="answer" id="answer" type="text" inputmode="decimal" autocomplete="off" required placeholder="Vpiši odgovor (lahko z vejico)">
-          <p class="feedback" id="feedback"></p>
+          <p class="feedback" id="feedback"></p><div class="help-buttons"><button id="questionHint" type="button">💡 Namig</button><button id="questionReveal" type="button">👁 Rešitev</button></div>
           <button class="action" type="submit">Preveri odgovor ↵</button>
         </form>
       </div>
@@ -74,6 +74,28 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:16/9}
           <p class="feedback" id="fairyFeedback" aria-live="polite"></p>
           <div style="display:flex;gap:9px;margin:6px 0 10px"><button id="fairyHint" type="button" style="flex:1">💡 Namig</button><button id="fairyReveal" type="button" style="flex:1">👁 Pokaži rešitev</button></div>
           <button class="action" type="submit">Oddaj odgovor ↵</button>
+        </form>
+      </div>
+    </div>
+    <div class="overlay" id="mikiOverlay" hidden>
+      <div class="panel">
+        <h2>🐈 Miki ti podari novo življenje</h2>
+        <p>Sivi tigrasti muc Miki te je prišel spodbudit. Zastavil ti bo vprašanje o živalih ali naravi za 5. razred. Ne glede na odgovor dobiš eno življenje. ❤️</p>
+        <div style="display:flex;justify-content:center"><svg width="150" height="108" viewBox="0 0 150 108" role="img" aria-label="Sivi tigrasti muc Miki">
+          <path d="M23 52 L25 9 L52 34 Q75 23 98 34 L125 9 L127 52 Q129 100 75 100 Q21 100 23 52" fill="#9da3a8" stroke="#444c52" stroke-width="3"/>
+          <path d="M29 20 L32 44 L48 37 M121 20 L118 44 L102 37" fill="#d3adb0"/>
+          <path d="M60 37 L68 53 M75 33 L75 52 M90 37 L82 53 M34 58 L50 65 M116 58 L100 65" stroke="#616970" stroke-width="6" stroke-linecap="round"/>
+          <ellipse cx="56" cy="69" rx="10" ry="9" fill="#b8d5b3"/><ellipse cx="94" cy="69" rx="10" ry="9" fill="#b8d5b3"/>
+          <ellipse cx="56" cy="69" rx="3" ry="7" fill="#242c33"/><ellipse cx="94" cy="69" rx="3" ry="7" fill="#242c33"/>
+          <path d="M69 83 L81 83 L75 90 Z" fill="#d9aaa8"/>
+          <path d="M75 90 Q65 97 60 89 M75 90 Q85 97 90 89 M61 85 L28 80 M61 89 L28 91 M89 85 L122 80 M89 89 L122 91" stroke="#525961" fill="none" stroke-width="2"/>
+        </svg></div>
+        <p id="mikiQuestion" style="font-size:19px;font-weight:750;color:#ffdf9e;text-align:center"></p>
+        <form id="mikiForm">
+          <label for="mikiAnswer">Tvoj odgovor</label><input class="answer" id="mikiAnswer" type="text" autocomplete="off" placeholder="Odgovor">
+          <p class="feedback" id="mikiFeedback" aria-live="polite"></p>
+          <div class="help-buttons"><button id="mikiHint" type="button">💡 Namig</button><button id="mikiReveal" type="button">👁 Rešitev</button><button id="mikiSkip" type="button">⏭ Preskoči</button></div>
+          <button class="action" type="submit">Odgovori in prejmi življenje</button>
         </form>
       </div>
     </div>
@@ -99,7 +121,7 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:16/9}
         <form id="treasureForm">
           <label for="countryAnswer">Ime države (slovensko)</label>
           <input class="answer" id="countryAnswer" type="text" autocomplete="off" required placeholder="Npr. Italija">
-          <p class="feedback" id="treasureFeedback" aria-live="polite"></p>
+          <p class="feedback" id="treasureFeedback" aria-live="polite"></p><div class="help-buttons"><button id="treasureHint" type="button">💡 Namig</button><button id="treasureReveal" type="button">👁 Rešitev</button></div>
           <button class="action" type="submit">Odkleni skrinjo ↵</button>
         </form>
       </div>
@@ -114,6 +136,7 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const menuOverlay = document.getElementById('menuOverlay');
 const questionOverlay = document.getElementById('questionOverlay');
+const mikiOverlay=document.getElementById('mikiOverlay'),mikiAnswer=document.getElementById('mikiAnswer'),mikiFeedback=document.getElementById('mikiFeedback');
 const fairyOverlay = document.getElementById('fairyOverlay');
 const treasureOverlay=document.getElementById('treasureOverlay');
 const countryAnswer=document.getElementById('countryAnswer');
@@ -145,8 +168,18 @@ let state='menu', stage=0, frame=0, cam=0, levelLength=3000, player, cat, lives=
 let coins=[], enemies=[], hedgehogs=[], worms=[], traps=[], gates=[], fairyBushes=[], platforms=[], particles=[], question=null, collected=0, checkpoint=40, reward=null, fairyQuestion=null;
 let audioCtx=null, musicStarted=false, musicOn=false, musicTimer=null, musicNext=0, musicStep=0, featherBuff=0, speedBuff=0, mathIndex=0;
 let vocabDeck=[], lastVocabIndex=-1, earnedLetters=[], wordSolved=false;
-const secretWords=[{word:'CAT',parts:['A','TC'],hint:'Domača žival, ki mijavka (angleško).'}, {word:'APPLE',parts:['PL','A','PE'],hint:'Sadje, ki raste na jablani (angleško).'}, {word:'SEA',parts:['S','E','A'],hint:'Morje v angleščini.'}];
-let inTunnel=false, tunnelDone=false, chestOpened=false, shieldState='none', shieldUntil=0, treasureQuestion=null;let megalodon={x:0,y:508}, spider={x:320,y:285};let modalContinue=null;
+const secretWordPool=[{"word":"CAT","hint":"Slovensko: Mačka."},{"word":"DOG","hint":"Slovensko: Pes."},{"word":"FISH","hint":"Slovensko: Riba."},{"word":"BIRD","hint":"Slovensko: Ptica."},{"word":"HORSE","hint":"Slovensko: Konj."},{"word":"MOUSE","hint":"Slovensko: Miš."},{"word":"RABBIT","hint":"Slovensko: Zajec."},{"word":"TIGER","hint":"Slovensko: Tiger."},{"word":"LION","hint":"Slovensko: Lev."},{"word":"BEAR","hint":"Slovensko: Medved."},{"word":"SHEEP","hint":"Slovensko: Ovca."},{"word":"DUCK","hint":"Slovensko: Raca."},{"word":"WHALE","hint":"Slovensko: Kit."},{"word":"SHARK","hint":"Slovensko: Morski pes."},{"word":"FROG","hint":"Slovensko: Žaba."},{"word":"SNAKE","hint":"Slovensko: Kača."},{"word":"PANDA","hint":"Slovensko: Panda."},{"word":"APPLE","hint":"Slovensko: Jabolko."},{"word":"PEAR","hint":"Slovensko: Hruška."},{"word":"PEACH","hint":"Slovensko: Breskev."},{"word":"BANANA","hint":"Slovensko: Banana."},{"word":"BREAD","hint":"Slovensko: Kruh."},{"word":"MILK","hint":"Slovensko: Mleko."},{"word":"WATER","hint":"Slovensko: Voda."},{"word":"CHEESE","hint":"Slovensko: Sir."},{"word":"SUGAR","hint":"Slovensko: Sladkor."},{"word":"LEMON","hint":"Slovensko: Limona."},{"word":"PIZZA","hint":"Slovensko: Pica."},{"word":"CAKE","hint":"Slovensko: Torta."},{"word":"GRAPE","hint":"Slovensko: Grozdna jagoda."},{"word":"HOUSE","hint":"Slovensko: Hiša."},{"word":"DOOR","hint":"Slovensko: Vrata."},{"word":"WINDOW","hint":"Slovensko: Okno."},{"word":"TABLE","hint":"Slovensko: Miza."},{"word":"CHAIR","hint":"Slovensko: Stol."},{"word":"CLOCK","hint":"Slovensko: Ura."},{"word":"BOOK","hint":"Slovensko: Knjiga."},{"word":"PENCIL","hint":"Slovensko: Svinčnik."},{"word":"SCHOOL","hint":"Slovensko: Šola."},{"word":"TRAIN","hint":"Slovensko: Vlak."},{"word":"PLANE","hint":"Slovensko: Letalo."},{"word":"BOAT","hint":"Slovensko: Čoln."},{"word":"BRIDGE","hint":"Slovensko: Most."},{"word":"ROAD","hint":"Slovensko: Cesta."},{"word":"GARDEN","hint":"Slovensko: Vrt."},{"word":"FLOWER","hint":"Slovensko: Roža."},{"word":"FOREST","hint":"Slovensko: Gozd."},{"word":"RIVER","hint":"Slovensko: Reka."},{"word":"OCEAN","hint":"Slovensko: Ocean."},{"word":"ISLAND","hint":"Slovensko: Otok."},{"word":"MOUNTAIN","hint":"Slovensko: Gora."},{"word":"CLOUD","hint":"Slovensko: Oblak."},{"word":"RAIN","hint":"Slovensko: Dež."},{"word":"SNOW","hint":"Slovensko: Sneg."},{"word":"STAR","hint":"Slovensko: Zvezda."},{"word":"MOON","hint":"Slovensko: Luna."},{"word":"SUN","hint":"Slovensko: Sonce."},{"word":"TREE","hint":"Slovensko: Drevo."},{"word":"LEAF","hint":"Slovensko: List."},{"word":"GRASS","hint":"Slovensko: Trava."},{"word":"SHELL","hint":"Slovensko: Školjka."},{"word":"STONE","hint":"Slovensko: Kamen."},{"word":"BEACH","hint":"Slovensko: Plaža."},{"word":"CASTLE","hint":"Slovensko: Grad."},{"word":"CROWN","hint":"Slovensko: Krona."},{"word":"ROBOT","hint":"Slovensko: Robot."},{"word":"BALL","hint":"Slovensko: Žoga."},{"word":"GAME","hint":"Slovensko: Igra."},{"word":"DREAM","hint":"Slovensko: Sanje."},{"word":"HEART","hint":"Slovensko: Srce."},{"word":"SMILE","hint":"Slovensko: Nasmeh."},{"word":"FAMILY","hint":"Slovensko: Družina."},{"word":"FRIEND","hint":"Slovensko: Prijatelj."},{"word":"MOTHER","hint":"Slovensko: Mama."},{"word":"FATHER","hint":"Slovensko: Oče."},{"word":"SISTER","hint":"Slovensko: Sestra."},{"word":"BROTHER","hint":"Slovensko: Brat."},{"word":"BABY","hint":"Slovensko: Dojenček."},{"word":"HAND","hint":"Slovensko: Roka."},{"word":"FOOT","hint":"Slovensko: Stopalo."},{"word":"SHOE","hint":"Slovensko: Čevelj."},{"word":"SHIRT","hint":"Slovensko: Majica."},{"word":"HAT","hint":"Slovensko: Klobuk."},{"word":"BAG","hint":"Slovensko: Torba."},{"word":"BED","hint":"Slovensko: Postelja."},{"word":"SPOON","hint":"Slovensko: Žlica."},{"word":"FORK","hint":"Slovensko: Vilice."},{"word":"KNIFE","hint":"Slovensko: Nož."},{"word":"PLATE","hint":"Slovensko: Krožnik."},{"word":"PHONE","hint":"Slovensko: Telefon."},{"word":"MUSIC","hint":"Slovensko: Glasba."},{"word":"DRUM","hint":"Slovensko: Boben."},{"word":"PIANO","hint":"Slovensko: Klavir."},{"word":"GUITAR","hint":"Slovensko: Kitara."},{"word":"KITE","hint":"Slovensko: Zmaj na vrvici."},{"word":"CANDLE","hint":"Slovensko: Sveča."},{"word":"BOTTLE","hint":"Slovensko: Steklenica."},{"word":"PAPER","hint":"Slovensko: Papir."},{"word":"PARK","hint":"Slovensko: Park."},{"word":"FARM","hint":"Slovensko: Kmetija."}];
+let currentSecretWord=null,secretWordDeck=[],previousSecretWord='';
+function chooseSecretWord(treeCount){
+  if(!secretWordDeck.length){secretWordDeck=Array.from({length:secretWordPool.length},(_,i)=>i);shuffleItems(secretWordDeck);
+    if(secretWordPool[secretWordDeck[secretWordDeck.length-1]].word===previousSecretWord) [secretWordDeck[0],secretWordDeck[secretWordDeck.length-1]]=[secretWordDeck[secretWordDeck.length-1],secretWordDeck[0]];
+  }
+  const chosen=secretWordPool[secretWordDeck.pop()];previousSecretWord=chosen.word;
+  const n=Math.min(treeCount,chosen.word.length),parts=[];let cursor=0;
+  for(let i=0;i<n;i++){const size=Math.floor(chosen.word.length/n)+(i<chosen.word.length%n?1:0);parts.push(chosen.word.slice(cursor,cursor+size));cursor+=size;}
+  shuffleItems(parts);return {...chosen,parts};
+}
+let inTunnel=false, tunnelDone=false, chestOpened=false, shieldState='none', shieldUntil=0, treasureQuestion=null;let mikiCurrent=null,mikiUsed=[],mikiRescuePending=false;let megalodon={x:0,y:508}, spider={x:320,y:285};let modalContinue=null;
 const TUNNEL_LENGTH=865, TUNNEL_CEILING=270;
 const tunnelSpikes=[{x:186,y:GROUND-28,w:51,h:28,roof:false},{x:330,y:TUNNEL_CEILING,w:56,h:48,roof:true},{x:447,y:GROUND-28,w:51,h:28,roof:false}];
 const countries=[
@@ -230,7 +263,8 @@ function skipTest(){
   if(state==='question'&&question){answerInput.value=String(question.result);document.getElementById('answerForm').requestSubmit();return;}
   if(state==='fairy'&&fairyQuestion){fairyAnswer.value=fairyQuestion.answers[0];document.getElementById('fairyForm').requestSubmit();return;}
   if(state==='treasure'&&treasureQuestion){countryAnswer.value=treasureQuestion.answers[0];document.getElementById('treasureForm').requestSubmit();return;}
-  if(state==='word'){wordAnswer.value=secretWords[stage].word;document.getElementById('wordForm').requestSubmit();return;}
+  if(state==='word'){wordAnswer.value=currentSecretWord.word;document.getElementById('wordForm').requestSubmit();return;}
+  if(state==='miki'){endMiki(true);return;}
   if(state==='playing'||state==='tunnel'){if(stage<levelSpecs.length-1)enterStage(stage+1,false);else showMenu('Test zaključen','Prišel si do konca vseh treh stopenj.');}
 }
 
@@ -370,8 +404,8 @@ function generateLevelLayout(spec){
   const gatePositions=sea?gateIndices.map(i=>{
     const p=built[i];return {x:Math.round(p.x+p.w*0.48-18),y:p.y,platformIndex:i};
   }):spec.gates.map((x,i)=>({x:clampValue(x+randInt(-25,25),i===0?820:1600,i===0?925:2160),y:GROUND,platformIndex:-1}));
-  const fairyPositions=spec.fairyBushes.map((x,i)=>({
-    x:sea?x:clampValue(x+randInt(-35,35),x-40,x+40),prize:i===0?'jump':'speed'
+  const fairyPositions=sea?[{x:built[5].x+36,y:built[5].y,prize:'adaptive'}]:spec.fairyBushes.map((x,i)=>({
+    x:clampValue(x+randInt(-35,35),x-40,x+40),y:GROUND,prize:i===0?'jump':'speed'
   }));
   const coinsPos=[];
   if(sea){
@@ -435,19 +469,20 @@ function generateLevelLayout(spec){
 
 function enterStage(num, resetLives=false){
   stage=num; frame=0; cam=0; particles=[]; reward=null; collected=0; checkpoint=40; question=null; fairyQuestion=null; earnedLetters=[]; wordSolved=false; wordOverlay.hidden=true;
-  if(resetLives){ lives=3; featherBuff=0; speedBuff=0; mathIndex=0; shieldState='none'; tunnelDone=false; chestOpened=false; }
+  if(resetLives){mikiRescuePending=false;mikiOverlay.hidden=true; lives=3; featherBuff=0; speedBuff=0; mathIndex=0; shieldState='none'; tunnelDone=false; chestOpened=false; }
   inTunnel=false;treasureOverlay.hidden=true;
   if(num===0 && !resetLives){tunnelDone=false;chestOpened=false;shieldState='none';}
   const s=levelSpecs[stage];
   const layout=generateLevelLayout(s);
+  currentSecretWord=chooseSecretWord(layout.gatePositions.length);
   levelLength=layout.length;
   platforms=[...(s.sea?[]:[{x:0,y:GROUND,w:levelLength,h:68,kind:'ground'}]),...layout.built];
   checkpoint=s.sea?layout.built[0].x+25:40;
   player=makePlayer(s.sea?layout.built[0].x+25:40);cat=makeCat(player.x);
   if(s.sea){player.y=layout.built[0].y-player.h;cat.y=player.y+player.h-cat.h;megalodon={x:player.x,y:510};}
   coins=layout.coinsPos.map(c=>({x:c.x,y:c.y,taken:false,platformIndex:c.platformIndex}));
-  gates=layout.gatePositions.map((g,i)=>({x:g.x,y:g.y-205,w:58,h:205,solved:false,letterPrize:secretWords[stage].parts[i]}));
-  fairyBushes=layout.fairyPositions.map(f=>({x:f.x,y:GROUND-120,w:70,h:120,solved:false,prize:f.prize}));
+  gates=layout.gatePositions.map((g,i)=>({x:g.x,y:g.y-205,w:58,h:205,solved:false,letterPrize:currentSecretWord.parts[i]}));
+  fairyBushes=layout.fairyPositions.map(f=>({x:f.x,y:f.y-120,w:70,h:120,solved:false,prize:f.prize}));
   hedgehogs=layout.hedgePos.map((c,i)=>({x:c.x,y:c.y-26,w:38,h:26,min:c.left,max:c.right,dir:i%2?1:-1,speed:0.75}));
   worms=layout.wormPos.map((c,i)=>({x:c.x,phase:80*i+100,w:32,h:48,period:260+i*42}));
   enemies=layout.monsterPos.map((c,i)=>({x:c.x,y:c.y-34,w:40,h:34,min:c.left,max:c.right,platformIndex:c.platformIndex,
@@ -464,7 +499,7 @@ function findGroundYForEnemy(x){
 
 function newGame(){score=0; enterStage(0,true);}
 function showMenu(title='Nastavitve igre', desc='Izberi težavnost in začni novo igro.'){
-  state='menu'; keys.clear(); questionOverlay.hidden=true; fairyOverlay.hidden=true; treasureOverlay.hidden=true; wordOverlay.hidden=true; menuOverlay.hidden=false;
+  state='menu'; keys.clear();mikiRescuePending=false;mikiOverlay.hidden=true; questionOverlay.hidden=true; fairyOverlay.hidden=true; treasureOverlay.hidden=true; wordOverlay.hidden=true; menuOverlay.hidden=false;
   menuTitle.textContent=title; menuDescription.textContent=desc;
 }
 
@@ -482,6 +517,19 @@ window.addEventListener('keydown',e=>{
 window.addEventListener('keyup',e=>keys.delete(e.code));
 window.addEventListener('blur',()=>keys.clear());
 
+function getQuestionHint(q){
+  if(q.mode==='capital')return 'Začne se na '+q.result[0].toUpperCase()+'. Ima '+q.result.length+' črk.';
+  if(q.mode==='times')return 'Seštevaj isto število večkrat. Rezultat ima '+String(q.result).length+' števk.';
+  if(q.mode==='divide')return 'Katero število pomnožiš z deliteljem, da dobiš deljenec?';
+  if(q.mode==='decimal')return 'Poravnaj decimalne vejice in računaj po desetinah.';
+  return 'Računaj po korakih: najprej desetice, nato enice.';
+}
+document.getElementById('questionHint').addEventListener('click',()=>{
+ if(state==='question'&&question){feedback.style.color='#ffdb92';feedback.textContent='Namig: '+getQuestionHint(question);}
+});
+document.getElementById('questionReveal').addEventListener('click',()=>{
+ if(state==='question'&&question){feedback.style.color='#c9f4ba';feedback.textContent='Rešitev: '+String(question.result).replace('.',',')+'. Vpiši jo v polje.';}
+});
 function ask(gate){
   // Deterministic alternation with decimals; sea level also has capital cities.
   const modes=levelSpecs[stage].sea?['capital','decimal','times','arith','divide']:['times','arith','divide','decimal'];
@@ -508,13 +556,15 @@ function ask(gate){
   if(mode==='capital'){const [country,city]=capitals[randInt(0,capitals.length-1)];prompt='Glavno mesto države '+country+'?';result=city;}
   question={gate,result,mode};
   document.getElementById('questionText').textContent=prompt;
-  feedback.textContent='Izračunaj pravilno.';feedback.style.color='#d9e7ee';
+  feedback.textContent=mode==='capital'?'Napiši ime glavnega mesta.':'Izračunaj pravilno.';feedback.style.color='#d9e7ee';
   answerInput.value='';hideCompletion(questionOverlay);state='question';questionOverlay.hidden=false;keys.clear();answerInput.focus();
 }
 function askFairy(bush){
   const [word, answers] = nextVocab();
   fairyQuestion = {bush, word, answers};
-  fairyPrize.textContent=bush.prize==='jump'?'fedre za višji in daljši skok':'čarobne čevlje za hitrejšo hojo';
+  if(bush.prize==='adaptive'){bush.reward=!featherBuff?'jump':(shieldState==='none'||shieldState==='spent')?'shield':'shield';}
+  else bush.reward=bush.prize;
+  fairyPrize.textContent=bush.reward==='jump'?'fedre za višji in daljši skok':bush.reward==='shield'?'čarobni ščit':'čarobne čevlje za hitrejšo hojo';
   fairyWordText.textContent = word;
   fairyFeedback.textContent=''; fairyFeedback.style.color='#d9e7ee'; fairyAnswer.value='';
   hideCompletion(fairyOverlay);state='fairy'; fairyOverlay.hidden=false; keys.clear(); fairyAnswer.focus();
@@ -530,7 +580,7 @@ document.getElementById('answerForm').addEventListener('submit',e=>{
     question.gate.solved = true; score += 35;
     earnedLetters.push(...question.gate.letterPrize.split(''));
     feedback.textContent += ' Dobil si črke: '+question.gate.letterPrize.split('').join(', ')+'.';
-    reward = { x: question.gate.x+26, y: GROUND-22, time: 380, reached:false, eatTime:0 };
+    reward = { x: question.gate.x+26, y: question.gate.y+question.gate.h-22, time: 380, reached:false, eatTime:0 };
     burst(question.gate.x+28, GROUND-95, '#d7ffb5', 16);
     showCompletion(questionOverlay,feedback.textContent,()=>{question=null;state='playing';});
   } else {
@@ -554,8 +604,8 @@ document.getElementById('fairyForm').addEventListener('submit',e=>{
   const value = normalizeAnswer(fairyAnswer.value);
   const ok = fairyQuestion.answers.some(a=>normalizeAnswer(a)===value);
   if(ok){
-    fairyFeedback.style.color='#c9f4ba'; fairyFeedback.textContent=fairyQuestion.bush.prize==='jump'?'Pravilno! Dobiš fedre za višji skok.':'Pravilno! Dobiš čarobne čevlje za hitrejšo hojo.';
-    fairyQuestion.bush.solved=true; if(fairyQuestion.bush.prize==='jump') featherBuff=1; else speedBuff=1; score += 50; burst(fairyQuestion.bush.x+35, GROUND-110, '#ffd3ff', 20);
+    fairyFeedback.style.color='#c9f4ba'; fairyFeedback.textContent=fairyQuestion.bush.reward==='jump'?'Pravilno! Dobiš fedre za višji skok.':fairyQuestion.bush.reward==='shield'?'Pravilno! Dobiš ščit, ki ga aktiviraš s tipko R.':'Pravilno! Dobiš čarobne čevlje za hitrejšo hojo.';
+    fairyQuestion.bush.solved=true; if(fairyQuestion.bush.reward==='jump') featherBuff=1; else if(fairyQuestion.bush.reward==='shield'){shieldState='ready';shieldUntil=0;} else speedBuff=1; score += 50; burst(fairyQuestion.bush.x+35, fairyQuestion.bush.y+10, '#ffd3ff', 20);
     showCompletion(fairyOverlay,fairyFeedback.textContent,()=>{fairyQuestion=null;state='playing';});
   } else {
     fairyFeedback.style.color='#ffb39a'; fairyFeedback.textContent='Poskusi še enkrat.'; fairyAnswer.select();
@@ -592,6 +642,8 @@ function showTreasure(){
   countryAnswer.value='';treasureFeedback.textContent='';hideCompletion(treasureOverlay);state='treasure';keys.clear();treasureOverlay.hidden=false;countryAnswer.focus();
 }
 function normalizeAnswer(s){return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');}
+document.getElementById('treasureHint').addEventListener('click',()=>{if(state==='treasure'&&treasureQuestion){treasureFeedback.style.color='#ffdb92';treasureFeedback.textContent='Namig: '+treasureQuestion.name[0]+'… ('+treasureQuestion.name.length+' črk).';}});
+document.getElementById('treasureReveal').addEventListener('click',()=>{if(state==='treasure'&&treasureQuestion){treasureFeedback.style.color='#c9f4ba';treasureFeedback.textContent='Rešitev: '+treasureQuestion.name+'. Vpiši jo v polje.';}});
 document.getElementById('treasureForm').addEventListener('submit',e=>{
   e.preventDefault();if(state!=='treasure'||!treasureQuestion)return;
   const a=normalizeAnswer(countryAnswer.value);
@@ -603,12 +655,60 @@ document.getElementById('treasureForm').addEventListener('submit',e=>{
   }else{treasureFeedback.style.color='#ffb6a5';treasureFeedback.textContent='Ni pravilno. Poskusi znova.';countryAnswer.select();}
 });
 function burst(x,y,color,count=12){ for(let i=0;i<count;i++) particles.push({x,y,vx:(Math.random()*4)-2,vy:(Math.random()*-4)-0.6,life:18+Math.random()*18,r:2+Math.random()*3,color}); }
+function respawnAfterHit(){
+  if(inTunnel){player=makePlayer(45);cat=makeCat(45);}
+  else{player=makePlayer(checkpoint);cat=makeCat(checkpoint);if(levelSpecs[stage].sea){
+    const p=platforms.find(p=>checkpoint>=p.x&&checkpoint<p.x+p.w)||platforms[0];
+    player.y=p.y-player.h;cat.y=player.y+player.h-cat.h;
+  }}
+}
+const mikiQuestions=[
+ ['Kateri organ pri človeku poganja kri po telesu?','srce','Bije v prsnem košu.'],
+ ['Kateri plin rastline sproščajo med fotosintezo?','kisik','Potrebujemo ga za dihanje.'],
+ ['Kako se imenuje proces, pri katerem rastline s svetlobo izdelujejo hrano?','fotosinteza','Začne se na F.'],
+ ['Kako imenujemo živali, ki jedo predvsem rastline?','rastlinojedci','V besedi je rastlina.'],
+ ['Kateri del rastline sprejema vodo iz tal?','korenina','Večinoma je pod zemljo.'],
+ ['Kako imenujemo prehod vode iz tekočega v plinasto stanje?','izhlapevanje','To se dogaja, ko se suši luža.'],
+ ['Kako imenujemo živali, ki imajo hrbtenico?','vretenčarji','Ime izhaja iz vretenc.'],
+ ['Kateri organ nam omogoča dihanje zraka?','pljuča','V prsnem košu imamo dva.'],
+ ['Kateri naravni satelit kroži okoli Zemlje?','luna','Pogosto jo vidimo ponoči.'],
+ ['Kako se imenuje največji planet v našem Osončju?','jupiter','Začne se s črko J.'],
+ ['Kako se imenuje kroženje vode med morjem, oblaki in padavinami?','vodni krog','Ime vsebuje besedo voda.'],
+ ['Kateri del cveta se razvije v plod?','plodnica','Začne se s plod-.'],
+ ['Katere živali dihajo s škrgami in imajo plavuti?','ribe','Živijo večinoma v vodi.'],
+ ['Katera žival se iz paglavca razvije v odraslo žival?','žaba','Zeleno dvoživko pogosto vidimo ob ribniku.'],
+ ['Kako imenujemo živali, ki jedo predvsem meso?','mesojedci','Ime vsebuje besedo meso.'],
+ ['Katera sila nas drži na površju Zemlje?','težnost','Imenujemo jo tudi gravitacija.']
+];
+function beginMikiRescue(){
+ if(mikiRescuePending)return;mikiRescuePending=true;
+ let choices=mikiQuestions.map((_,i)=>i).filter(i=>!mikiUsed.includes(i));
+ if(!choices.length){mikiUsed=[];choices=mikiQuestions.map((_,i)=>i);}
+ const i=choices[randInt(0,choices.length-1)];mikiUsed.push(i);mikiCurrent=mikiQuestions[i];
+ document.getElementById('mikiQuestion').textContent=mikiCurrent[0];mikiAnswer.value='';
+ mikiFeedback.style.color='#d9e7ee';mikiFeedback.textContent='Miki ti pomaga ne glede na odgovor.';
+ hideCompletion(mikiOverlay);state='miki';keys.clear();mikiOverlay.hidden=false;mikiAnswer.focus();
+}
+function endMiki(skipped=false){
+ if(state!=='miki')return;
+ const right=normalizeAnswer(mikiAnswer.value)===normalizeAnswer(mikiCurrent[1]);
+ mikiFeedback.style.color='#c9f4ba';
+ mikiFeedback.textContent=skipped?'Miki ti podari novo življenje! ❤️':right?'Pravilno! Miki ti podari novo življenje! ❤️':'Odgovor je '+mikiCurrent[1]+'. Miki ti vseeno podari novo življenje! ❤️';
+ showCompletion(mikiOverlay,mikiFeedback.textContent,()=>{
+   lives=1;mikiRescuePending=false;mikiCurrent=null;respawnAfterHit();player.invuln=120;
+   state=inTunnel?'tunnel':'playing';
+ });
+}
+document.getElementById('mikiHint').addEventListener('click',()=>{if(state==='miki'&&mikiCurrent){mikiFeedback.style.color='#ffdd91';mikiFeedback.textContent='Namig: '+mikiCurrent[2];}});
+document.getElementById('mikiReveal').addEventListener('click',()=>{if(state==='miki'&&mikiCurrent){mikiFeedback.style.color='#c9f4ba';mikiFeedback.textContent='Rešitev: '+mikiCurrent[1]+'.';}});
+document.getElementById('mikiSkip').addEventListener('click',()=>endMiki(true));
+document.getElementById('mikiForm').addEventListener('submit',e=>{e.preventDefault();endMiki();});
 function hurt(){
   if(takeHit())return;
   if(player.invuln>0) return;
   lives--; player.invuln=80; burst(player.x+15,player.y+20,'#ffab97',18);
-  if(lives<=0){ showMenu('Konec igre','Pošast ali past te je premagala. Začni novo igro in poskusi znova.'); return; }
-  if(inTunnel){player=makePlayer(45);cat=makeCat(45);}else{player=makePlayer(checkpoint);cat=makeCat(checkpoint);if(levelSpecs[stage].sea){const p=platforms.find(p=>checkpoint>=p.x&&checkpoint<p.x+p.w)||platforms[0];player.y=p.y-player.h;cat.y=player.y+player.h-cat.h;}}
+  if(lives<=0){beginMikiRescue();return;}
+  respawnAfterHit();
 }
 function levelFinish(){
   if(!wordSolved){
@@ -624,15 +724,15 @@ function levelFinish(){
   else{showMenu('Zmaga!','Bravo! Opravil si vse tri stopnje in sestavil vse čarobne besede.');}
 }
 document.getElementById('wordHint').addEventListener('click',()=>{
-  if(state!=='word')return;wordFeedback.style.color='#ffdd91';wordFeedback.textContent=secretWords[stage].hint;
+  if(state!=='word')return;wordFeedback.style.color='#ffdd91';wordFeedback.textContent=currentSecretWord.hint;
 });
 document.getElementById('wordReveal').addEventListener('click',()=>{
   if(state!=='word')return;wordFeedback.style.color='#c9f4ba';
-  wordFeedback.textContent='Rešitev: '+secretWords[stage].word+'. Vpiši besedo za nadaljevanje.';
+  wordFeedback.textContent='Rešitev: '+currentSecretWord.word+'. Vpiši besedo za nadaljevanje.';
 });
 document.getElementById('wordForm').addEventListener('submit',e=>{
   e.preventDefault();if(state!=='word')return;
-  if(normalizeAnswer(wordAnswer.value)===normalizeAnswer(secretWords[stage].word)){
+  if(normalizeAnswer(wordAnswer.value)===normalizeAnswer(currentSecretWord.word)){
     wordSolved=true;score+=80;wordFeedback.style.color='#c9f4ba';wordFeedback.textContent='Pravilno! Sestavil si čarobno besedo.';showCompletion(wordOverlay,wordFeedback.textContent,()=>{state='playing';levelFinish();});
   }else{wordFeedback.style.color='#ffb39a';wordFeedback.textContent='To ni prava beseda. Uporabi vse zbrane črke ali klikni Namig.';wordAnswer.select();}
 });
@@ -820,20 +920,20 @@ function drawSquirrel(g){
 }
 function drawGate(g){ const x = g.x-cam; if(x<-150||x>W+180) return; drawMagicTree(x+28, g.y+g.h, 1.12, g.solved);drawSquirrel(g); if(!g.solved){ ctx.fillStyle='#ffeac6'; ctx.font='bold 15px system-ui'; ctx.textAlign='center'; ctx.fillText('ČAROBNO VPRAŠANJE', x+28, g.y+g.h-266); ctx.textAlign='left'; } }
 function drawFairyBush(b){
-  const x=b.x-cam; if(x<-120||x>W+160) return;
-  ellipse(x+36,GROUND+2,42,10,'#1f332b30');
-  for(const [dx,dy,rx,ry,c] of [[12,-35,20,18,'#4f835f'],[33,-50,28,23,'#6a9c66'],[58,-38,22,19,'#558d64'],[38,-24,30,18,'#4d7d5a']]) ellipse(x+dx,GROUND+dy,rx,ry,c);
+  const x=b.x-cam, base=b.y+b.h; if(x<-120||x>W+160) return;
+  ellipse(x+36,base+2,42,10,'#1f332b30');
+  for(const [dx,dy,rx,ry,c] of [[12,-35,20,18,'#4f835f'],[33,-50,28,23,'#6a9c66'],[58,-38,22,19,'#558d64'],[38,-24,30,18,'#4d7d5a']]) ellipse(x+dx,base+dy,rx,ry,c);
   if(!b.solved){
     // fairy sitting in the bush
-    ellipse(x+38,GROUND-68,12,4,'#00000020');
-    ellipse(x+38,GROUND-84,8,8,'#f3cfb6');
-    ctx.fillStyle='#cfa2f1'; rr(x+31,GROUND-78,14,16,5); ctx.fill();
-    polygon([[x+31,GROUND-74],[x+18,GROUND-84],[x+28,GROUND-66]],'#d9f6ff88'); polygon([[x+45,GROUND-74],[x+58,GROUND-84],[x+48,GROUND-66]],'#d9f6ff88');
-    ctx.fillStyle='#ffe8b4'; ctx.beginPath(); ctx.arc(x+38,GROUND-95,2.5,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#fff4d6'; ctx.font='bold 15px system-ui'; ctx.fillText(b.prize==='jump'?'vila skoka':'vila hitrosti',x-10,GROUND-104);
+    ellipse(x+38,base-68,12,4,'#00000020');
+    ellipse(x+38,base-84,8,8,'#f3cfb6');
+    ctx.fillStyle='#cfa2f1'; rr(x+31,base-78,14,16,5); ctx.fill();
+    polygon([[x+31,base-74],[x+18,base-84],[x+28,base-66]],'#d9f6ff88'); polygon([[x+45,base-74],[x+58,base-84],[x+48,base-66]],'#d9f6ff88');
+    ctx.fillStyle='#ffe8b4'; ctx.beginPath(); ctx.arc(x+38,base-95,2.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff4d6'; ctx.font='bold 15px system-ui'; ctx.fillText(b.prize==='adaptive'?'morska vila':b.prize==='jump'?'vila skoka':'vila hitrosti',x-10,base-104);
   } else {
-    ctx.fillStyle='#fff1d8'; ctx.font='bold 15px system-ui'; ctx.fillText(b.prize==='jump'?'fedre ✓':'hitrost ✓',x+14,GROUND-95);
-    for(let i=0;i<3;i++){ polygon([[x+22+i*11,GROUND-80],[x+28+i*11,GROUND-96],[x+34+i*11,GROUND-82]],'#fff7e8'); }
+    ctx.fillStyle='#fff1d8'; ctx.font='bold 15px system-ui'; ctx.fillText(b.prize==='adaptive'?'darilo ✓':b.prize==='jump'?'fedre ✓':'hitrost ✓',x+14,base-95);
+    for(let i=0;i<3;i++){ polygon([[x+22+i*11,base-80],[x+28+i*11,base-96],[x+34+i*11,base-82]],'#fff7e8'); }
   }
 }
 function drawPlayer(){ if(player.invuln>0 && Math.floor(frame/5)%2===0) return; const x = player.x-cam, y = player.y; ellipse(x+15,y+44,17,4,'#101b174f'); ctx.fillStyle='#3e3228'; ctx.fillRect(x+3,y+36,11,8); ctx.fillRect(x+17,y+36,11,8); ctx.fillStyle='#6b543b'; ctx.fillRect(x+(player.face>0?-4:25),y+15,8,19); ctx.fillStyle=grad(x,y+18,x+29,y+40,['#8ca39a','#355969','#1e3747']); rr(x+2,y+16,25,22,5); ctx.fill(); ctx.fillStyle='#c79c7c'; ctx.fillRect(x+3,y+21,5,13); ctx.fillStyle='#e6b898'; rr(x+5,y+4,20,19,6); ctx.fill(); ctx.fillStyle='#564336'; rr(x+3,y,23,10,4); ctx.fill(); ctx.fillRect(x,y+7,29,3); ctx.fillStyle='#242d30'; ctx.fillRect(x+(player.face>0?18:9),y+12,3,3); if(featherBuff){ ctx.fillStyle='#fff8e0'; polygon([[x-6,y+18],[x-2,y+4],[x+2,y+18]],'#fff8e0'); polygon([[x+32,y+18],[x+36,y+4],[x+40,y+18]],'#fff8e0'); } }
@@ -866,13 +966,14 @@ function drawWorm(w){
 function drawReward(){ if(!reward) return; const x=reward.x-cam, y=reward.y; ellipse(x+2,y+10,18,5,'#00000024'); ctx.fillStyle='#875d38'; rr(x-10,y+2,24,12,3); ctx.fill(); ctx.fillStyle='#d3b58b'; rr(x-12,y,24,6,3); ctx.fill(); ctx.fillStyle='#6b431f'; ctx.fillRect(x-7,y-3,18,5); ctx.fillStyle='#e5d48e'; ctx.fillRect(x-5,y-6,6,5); ctx.fillRect(x+1,y-5,6,4); ctx.fillRect(x+6,y-7,4,5); if(reward.time>0 && !reward.reached){ ctx.fillStyle='#fff6d1'; ctx.font='bold 12px system-ui'; ctx.fillText('hrana', x-10, y-13); } }
 function drawFinishFlag(){
  const x=levelLength-75-cam, ready=collected===coins.length;
- const floor=levelSpecs[stage].sea?levelSpecs[stage].platforms[levelSpecs[stage].platforms.length-1].y:GROUND;
+ const floor=levelSpecs[stage].sea?platforms[platforms.length-1].y:GROUND;
  ctx.fillStyle='#514735';ctx.fillRect(x,floor-110,7,110);
  polygon([[x+7,floor-108],[x+52,floor-94],[x+7,floor-77]],ready?'#f4b84c':'#93a3a3');
  ellipse(x+3,floor-109,5,5,'#efe3b8');
  if(!ready){ctx.fillStyle='#233b3ecc';ctx.fillRect(x-96,floor-164,138,28);ctx.fillStyle='#fff';ctx.font='13px system-ui';ctx.fillText('Zberi vse kovance',x-89,floor-145);}
 }
 function drawForeground(){
+  if(levelSpecs[stage].sea)return;
   for(let i=0;i<28;i++){
     const x=i*125+18-cam; if(x<-12||x>W+12) continue;
     for(let j=0;j<5;j++){ ctx.strokeStyle=j%2?'#376946':'#467b4a'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(x+j*6,GROUND+2); ctx.lineTo(x+j*6-3,GROUND-8-j%3*4); ctx.stroke(); }

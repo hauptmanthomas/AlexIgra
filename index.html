@@ -105,7 +105,7 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:16/9}
       </div>
     </div>
   </div>
-  <div class="note"><b>Premik:</b> ← → / A D &nbsp; | &nbsp; <b>Skok:</b> preslednica / W / ↑ &nbsp; | &nbsp; <b>R:</b> uporabi ščit &nbsp; | &nbsp; <b>N:</b> ponovi stopnjo &nbsp; | &nbsp; <b>T:</b> testni preskok vprašanja / stopnje &nbsp; | &nbsp; <b>Esc:</b> meni<br>Ko se ustaviš, se mačka počasi smuka okoli tebe. Ko hodiš, ti sledi. Po pravilni nalogi dobi mačka skodelico hrane. Vili sprašujeta samo po samostalnikih, z namigi in možnostjo prikaza rešitve. Prva vila podari fedre za skok, druga hitrejšo hojo. Ježevca ne smeš pohoditi, črv pa občasno prileze iz tal. V rovu so 3 fiksne pasti in skrinja z zastavo.</div>
+  <div class="note"><b>Premik:</b> ← → / A D &nbsp; | &nbsp; <b>Skok:</b> preslednica / W / ↑ &nbsp; | &nbsp; <b>R:</b> uporabi ščit &nbsp; | &nbsp; <b>N:</b> ponovi stopnjo &nbsp; | &nbsp; <b>F1:</b> testni preskok vprašanja / stopnje &nbsp; | &nbsp; <b>Esc:</b> meni<br>Ko se ustaviš, se mačka počasi smuka okoli tebe. Ko hodiš, ti sledi. Po pravilni nalogi dobi mačka skodelico hrane. Vili sprašujeta samo po samostalnikih, z namigi in možnostjo prikaza rešitve. Prva vila podari fedre za skok, druga hitrejšo hojo. Ježevca ne smeš pohoditi, črv pa občasno prileze iz tal. V rovu so 3 fiksne pasti in skrinja z zastavo.</div>
 </div>
 <script>
 
@@ -472,7 +472,7 @@ document.getElementById('menuButton').addEventListener('click',()=>showMenu());
 document.getElementById('startButton').addEventListener('click',newGame);
 
 window.addEventListener('keydown',e=>{
-  if(e.code==='KeyT'){e.preventDefault();skipTest();return;}
+  if(e.code==='F1'){e.preventDefault();skipTest();return;}
   if((state==='playing'||state==='tunnel') && ['ArrowLeft','ArrowRight','ArrowUp','Space','KeyA','KeyD','KeyW'].includes(e.code)) e.preventDefault();
   if(e.code==='Escape'){ showMenu(); return; }
   if((state==='playing'||state==='tunnel') && e.code==='KeyR'){ activateShield();return; }

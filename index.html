@@ -708,7 +708,7 @@ function drawMagicTree(x,baseY,s,solved){ ctx.save(); ctx.translate(x,baseY); ct
 function drawSquirrel(g){
   const period=420, t=(frame+g.x*0.21)%period;
   if(t>165)return;
-  const x=g.x+28-cam+(Math.sin(frame/23)*7),y=GROUND-236;
+  const x=g.x+28-cam+(Math.sin(frame/23)*7),y=g.y+g.h-236;
   const a=Math.min(1,t/22,(165-t)/24);
   ctx.save();ctx.globalAlpha=Math.max(0,a);
   // A bushy tail, little paws, rounded ears and eyes peeking through the crown.
@@ -720,7 +720,7 @@ function drawSquirrel(g){
   ctx.fillStyle='#dfb887';ctx.fillRect(x-9,y+12,5,4);ctx.fillRect(x-1,y+12,5,4);
   ctx.restore();
 }
-function drawGate(g){ const x = g.x-cam; if(x<-150||x>W+180) return; drawMagicTree(x+28, g.y+g.h, 1.12, g.solved);drawSquirrel(g); if(!g.solved){ ctx.fillStyle='#ffeac6'; ctx.font='bold 15px system-ui'; ctx.textAlign='center'; ctx.fillText('RAČUN ali POŠTEVANKA', x+28, GROUND-266); ctx.textAlign='left'; } }
+function drawGate(g){ const x = g.x-cam; if(x<-150||x>W+180) return; drawMagicTree(x+28, g.y+g.h, 1.12, g.solved);drawSquirrel(g); if(!g.solved){ ctx.fillStyle='#ffeac6'; ctx.font='bold 15px system-ui'; ctx.textAlign='center'; ctx.fillText('ČAROBNO VPRAŠANJE', x+28, g.y+g.h-266); ctx.textAlign='left'; } }
 function drawFairyBush(b){
   const x=b.x-cam; if(x<-120||x>W+160) return;
   ellipse(x+36,GROUND+2,42,10,'#1f332b30');
@@ -766,7 +766,14 @@ function drawWorm(w){
   ellipse(x+9,top+12,3,3,'#241c23');ellipse(x+23,top+12,3,3,'#241c23');
 }
 function drawReward(){ if(!reward) return; const x=reward.x-cam, y=reward.y; ellipse(x+2,y+10,18,5,'#00000024'); ctx.fillStyle='#875d38'; rr(x-10,y+2,24,12,3); ctx.fill(); ctx.fillStyle='#d3b58b'; rr(x-12,y,24,6,3); ctx.fill(); ctx.fillStyle='#6b431f'; ctx.fillRect(x-7,y-3,18,5); ctx.fillStyle='#e5d48e'; ctx.fillRect(x-5,y-6,6,5); ctx.fillRect(x+1,y-5,6,4); ctx.fillRect(x+6,y-7,4,5); if(reward.time>0 && !reward.reached){ ctx.fillStyle='#fff6d1'; ctx.font='bold 12px system-ui'; ctx.fillText('hrana', x-10, y-13); } }
-function drawFinishFlag(){ const x=levelLength-75-cam, ready=collected===coins.length; ctx.fillStyle='#514735'; ctx.fillRect(x,GROUND-110,7,110); polygon([[x+7,GROUND-108],[x+52,GROUND-94],[x+7,GROUND-77]], ready?'#f4b84c':'#93a3a3'); ellipse(x+3,GROUND-109,5,5,'#efe3b8'); if(!ready){ ctx.fillStyle='#233b3ecc'; ctx.fillRect(x-96,GROUND-164,138,28); ctx.fillStyle='#fff'; ctx.font='13px system-ui'; ctx.fillText('Zberi vse kovance', x-89, GROUND-145); } }
+function drawFinishFlag(){
+ const x=levelLength-75-cam, ready=collected===coins.length;
+ const floor=levelSpecs[stage].sea?levelSpecs[stage].platforms[levelSpecs[stage].platforms.length-1].y:GROUND;
+ ctx.fillStyle='#514735';ctx.fillRect(x,floor-110,7,110);
+ polygon([[x+7,floor-108],[x+52,floor-94],[x+7,floor-77]],ready?'#f4b84c':'#93a3a3');
+ ellipse(x+3,floor-109,5,5,'#efe3b8');
+ if(!ready){ctx.fillStyle='#233b3ecc';ctx.fillRect(x-96,floor-164,138,28);ctx.fillStyle='#fff';ctx.font='13px system-ui';ctx.fillText('Zberi vse kovance',x-89,floor-145);}
+}
 function drawForeground(){
   for(let i=0;i<28;i++){
     const x=i*125+18-cam; if(x<-12||x>W+12) continue;

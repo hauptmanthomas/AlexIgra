@@ -80,7 +80,7 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:16/9}
     <div class="overlay" id="mikiOverlay" hidden>
       <div class="panel">
         <h2>🐈 Miki ti podari novo življenje</h2>
-        <p>Sivi tigrasti muc Miki te je prišel spodbudit. Zastavil ti bo vprašanje o živalih ali naravi za 5. razred. Ne glede na odgovor dobiš eno življenje. ❤️</p>
+        <p>Pozdravljen Alex, tukaj tvoj prijatelj Miki, priskočil sem ti na pomoč. Zastavil ti bom vprašanje o živalih ali naravi. Ne glede na odgovor dobiš eno življenje. ❤️</p>
         <div style="display:flex;justify-content:center"><svg width="150" height="108" viewBox="0 0 150 108" role="img" aria-label="Sivi tigrasti muc Miki">
           <path d="M23 52 L25 9 L52 34 Q75 23 98 34 L125 9 L127 52 Q129 100 75 100 Q21 100 23 52" fill="#9da3a8" stroke="#444c52" stroke-width="3"/>
           <path d="M29 20 L32 44 L48 37 M121 20 L118 44 L102 37" fill="#d3adb0"/>
@@ -179,7 +179,7 @@ function chooseSecretWord(treeCount){
   for(let i=0;i<n;i++){const size=Math.floor(chosen.word.length/n)+(i<chosen.word.length%n?1:0);parts.push(chosen.word.slice(cursor,cursor+size));cursor+=size;}
   shuffleItems(parts);return {...chosen,parts};
 }
-let inTunnel=false, tunnelDone=false, chestOpened=false, shieldState='none', shieldUntil=0, treasureQuestion=null;let mikiCurrent=null,mikiUsed=[],mikiRescuePending=false;let megalodon={x:0,y:508}, spider={x:320,y:285};let modalContinue=null;
+let inTunnel=false, tunnelDone=false, chestOpened=false, shieldState='none', shieldUntil=0, treasureQuestion=null;let mikiCurrent=null,mikiUsed=[],mikiRescuePending=false,mikiUsedThisGame=false;let megalodon={x:0,y:508}, spider={x:320,y:285};let modalContinue=null;
 const TUNNEL_LENGTH=865, TUNNEL_CEILING=270;
 const tunnelSpikes=[{x:186,y:GROUND-28,w:51,h:28,roof:false},{x:330,y:TUNNEL_CEILING,w:56,h:48,roof:true},{x:447,y:GROUND-28,w:51,h:28,roof:false}];
 const countries=[
@@ -479,7 +479,7 @@ function enterStage(num, resetLives=false){
   platforms=[...(s.sea?[]:[{x:0,y:GROUND,w:levelLength,h:68,kind:'ground'}]),...layout.built];
   checkpoint=s.sea?layout.built[0].x+25:40;
   player=makePlayer(s.sea?layout.built[0].x+25:40);cat=makeCat(player.x);
-  if(s.sea){player.y=layout.built[0].y-player.h;cat.y=player.y+player.h-cat.h;megalodon={x:player.x,y:510};}
+  if(s.sea){player.y=layout.built[0].y-player.h;cat.y=player.y+player.h-cat.h;megalodon={x:player.x,y:495};}
   coins=layout.coinsPos.map(c=>({x:c.x,y:c.y,taken:false,platformIndex:c.platformIndex}));
   gates=layout.gatePositions.map((g,i)=>({x:g.x,y:g.y-205,w:58,h:205,solved:false,letterPrize:currentSecretWord.parts[i]}));
   fairyBushes=layout.fairyPositions.map(f=>({x:f.x,y:f.y-120,w:70,h:120,solved:false,prize:f.prize}));
@@ -497,7 +497,7 @@ function findGroundYForEnemy(x){
   return GROUND-34;
 }
 
-function newGame(){score=0; enterStage(0,true);}
+function newGame(){score=0;mikiUsedThisGame=false;mikiUsed=[];enterStage(0,true);}
 function showMenu(title='Nastavitve igre', desc='Izberi težavnost in začni novo igro.'){
   state='menu'; keys.clear();mikiRescuePending=false;mikiOverlay.hidden=true; questionOverlay.hidden=true; fairyOverlay.hidden=true; treasureOverlay.hidden=true; wordOverlay.hidden=true; menuOverlay.hidden=false;
   menuTitle.textContent=title; menuDescription.textContent=desc;
@@ -681,7 +681,8 @@ const mikiQuestions=[
  ['Katera sila nas drži na površju Zemlje?','težnost','Imenujemo jo tudi gravitacija.']
 ];
 function beginMikiRescue(){
- if(mikiRescuePending)return;mikiRescuePending=true;
+ if(mikiRescuePending||mikiUsedThisGame)return;
+ mikiRescuePending=true;mikiUsedThisGame=true;
  let choices=mikiQuestions.map((_,i)=>i).filter(i=>!mikiUsed.includes(i));
  if(!choices.length){mikiUsed=[];choices=mikiQuestions.map((_,i)=>i);}
  const i=choices[randInt(0,choices.length-1)];mikiUsed.push(i);mikiCurrent=mikiQuestions[i];
@@ -707,7 +708,10 @@ function hurt(){
   if(takeHit())return;
   if(player.invuln>0) return;
   lives--; player.invuln=80; burst(player.x+15,player.y+20,'#ffab97',18);
-  if(lives<=0){beginMikiRescue();return;}
+  if(lives<=0){
+    if(!mikiUsedThisGame){beginMikiRescue();return;}
+    lives=0;showMenu('Konec igre','Miki ti je že enkrat pomagal. Tokrat je igre konec. Začni novo igro in poskusi znova.');return;
+  }
   respawnAfterHit();
 }
 function levelFinish(){
@@ -768,7 +772,7 @@ function update(dt){
   if(player.grounded && (keys.has('Space')||keys.has('ArrowUp')||keys.has('KeyW'))){ player.vy=-12.2*jumpBoost; player.grounded=false; }
   player.x = Math.max(0, Math.min(levelLength-player.w, player.x + player.vx*dt));
   if(stage===0&&!tunnelDone&&player.x>=338){enterTunnel();draw();return;}
-  if(levelSpecs[stage].sea){megalodon.x+=(player.x-megalodon.x)*0.023*dt;megalodon.y=510+Math.sin(frame/23)*5;}
+  if(levelSpecs[stage].sea){megalodon.x+=(player.x-megalodon.x)*0.023*dt;megalodon.y=495+Math.sin(frame/23)*6;}
 
   for(const g of gates){ if(g.solved) continue; if(player.x + player.w > g.x-4 && player.x < g.x + g.w + 4){ if(player.vx >= 0){ player.x = g.x - player.w - 5; ask(g); break; } else player.x = g.x + g.w + 5; } }
   for(const b of fairyBushes){ if(b.solved) continue; if(player.x + player.w > b.x-4 && player.x < b.x + b.w + 4){ if(player.vx >= 0){ player.x = b.x - player.w - 5; askFairy(b); break; } else player.x = b.x + b.w + 5; } }
@@ -858,12 +862,42 @@ function drawSea(){
   const top=473;ctx.fillStyle=grad(0,top,0,H,['#267c9b','#115672','#062e4e']);ctx.fillRect(0,top,W,H-top);
   for(let i=0;i<30;i++){let x=((i*71+frame*0.7-cam*0.15)%W+W)%W;ellipse(x,top+7+Math.sin(i+frame/10)*3,18,2,'#c3f2eb50');}
   const x=megalodon.x-cam,y=megalodon.y;
-  if(x>-170&&x<W+170){ctx.save();ctx.translate(x,y);
-    ellipse(0,0,86,24,'#203f50');polygon([[-70,0],[-125,-32],[-116,30]],'#25495c');
-    polygon([[-13,-8],[-31,-55],[25,-13]],'#1f4354');
-    polygon([[40,1],[93,-15],[70,9]],'#335a67');ellipse(56,-8,4,3,'#dae5e4');
-    polygon([[57,12],[86,6],[74,17],[65,22]],'#c4d4d5');
-    ctx.restore();}
+  if(x>-200&&x<W+200){
+    ctx.save();ctx.translate(x,y);
+    // The shark turns toward Alex, showing an enormous open jaw and rows of teeth.
+    const facing=player.x>=megalodon.x?1:-1;
+    ctx.scale(facing,1);
+    const chomping=(Math.sin(frame/12)+1)*0.5;
+    // Giant animated caudal fin, dorsal fins, armour-like dark upper body.
+    polygon([[-73,-2],[-145,-46-chomping*8],[-130,0],[-148,41],[-69,19]],'#183644');
+    ellipse(-5,6,95,32,'#102f3e');
+    polygon([[-23,-13],[-46,-66],[22,-15]],'#143946');
+    polygon([[-70,2],[-94,-37],[-32,0]],'#1b4350');
+    ellipse(17,3,77,29,'#345763');
+    polygon([[-45,-15],[-4,-29],[57,-19],[91,-6],[66,4],[4,1]],'#263f4c');
+    // Open mouth: upper jaw, lower jaw and a dark interior.
+    polygon([[36,1],[104,-16],[121,-9],[81,13],[114,27],[91,36],[49,24]],'#0a141d');
+    polygon([[65,17],[110,25],[92,32],[56,24]],'#a94954');
+    polygon([[35,0],[104,-15],[118,-8],[72,11]],'#536e78');
+    polygon([[53,23],[100,36],[114,27],[81,16]],'#b2c5c9');
+    // Sharp, individually visible white teeth on both jaws.
+    for(let i=0;i<8;i++){
+      const u=i/8;
+      const xx=71+u*39;
+      polygon([[xx,-4+u*1],[xx+7,-4+u*1],[xx+5,9+u*2]],'#fff6dc');
+      polygon([[xx-1,23+u*3],[xx+7,23+u*3],[xx+3,11+u*2]],'#fff4df');
+    }
+    // Angry brow and gleaming predator eye.
+    ellipse(53,-14,8,6,'#111923');
+    ellipse(55,-15,3.5,3.5,'#eccc56');
+    ellipse(56,-15,1.5,2.7,'#12151b');
+    ctx.strokeStyle='#0a2531';ctx.lineWidth=5;
+    ctx.beginPath();ctx.moveTo(39,-23);ctx.lineTo(65,-18);ctx.stroke();
+    for(let i=0;i<4;i++){ctx.strokeStyle='#183440';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(18+i*7,3);ctx.lineTo(12+i*7,21);ctx.stroke();}
+    // Bubbles and swirling disturbance of the water near the jaws.
+    for(let i=0;i<5;i++){let bx=105+i*14+Math.sin(frame/15+i)*5,by=-27-i*9-(frame*.28%(24+i*6));ellipse(bx,by,2+i%3,3+i%2,'#bce8eb8c');}
+    ctx.restore();
+  }
   ctx.fillStyle='#e9f5ebaa';ctx.font='bold 17px system-ui';ctx.fillText('MORJE • pazljivo skači med otočki!',28,435);
 }
 function drawBackground(){
@@ -936,7 +970,34 @@ function drawFairyBush(b){
     for(let i=0;i<3;i++){ polygon([[x+22+i*11,base-80],[x+28+i*11,base-96],[x+34+i*11,base-82]],'#fff7e8'); }
   }
 }
-function drawPlayer(){ if(player.invuln>0 && Math.floor(frame/5)%2===0) return; const x = player.x-cam, y = player.y; ellipse(x+15,y+44,17,4,'#101b174f'); ctx.fillStyle='#3e3228'; ctx.fillRect(x+3,y+36,11,8); ctx.fillRect(x+17,y+36,11,8); ctx.fillStyle='#6b543b'; ctx.fillRect(x+(player.face>0?-4:25),y+15,8,19); ctx.fillStyle=grad(x,y+18,x+29,y+40,['#8ca39a','#355969','#1e3747']); rr(x+2,y+16,25,22,5); ctx.fill(); ctx.fillStyle='#c79c7c'; ctx.fillRect(x+3,y+21,5,13); ctx.fillStyle='#e6b898'; rr(x+5,y+4,20,19,6); ctx.fill(); ctx.fillStyle='#564336'; rr(x+3,y,23,10,4); ctx.fill(); ctx.fillRect(x,y+7,29,3); ctx.fillStyle='#242d30'; ctx.fillRect(x+(player.face>0?18:9),y+12,3,3); if(featherBuff){ ctx.fillStyle='#fff8e0'; polygon([[x-6,y+18],[x-2,y+4],[x+2,y+18]],'#fff8e0'); polygon([[x+32,y+18],[x+36,y+4],[x+40,y+18]],'#fff8e0'); } }
+function drawPlayer(){
+ if(player.invuln>0&&Math.floor(frame/5)%2===0)return;
+ const x=player.x-cam,y=player.y;
+ ellipse(x+15,y+44,17,4,'#101b174f');
+ // Sneakers, long trousers, coloured school T-shirt.
+ ctx.fillStyle='#303f64';ctx.fillRect(x+4,y+34,10,7);ctx.fillRect(x+18,y+34,9,7);
+ ctx.fillStyle='#30353a';ctx.fillRect(x+2,y+40,13,4);ctx.fillRect(x+17,y+40,13,4);
+ ctx.fillStyle='#e6bc94';ctx.fillRect(x+(player.face>0?-4:25),y+18,7,15);
+ ctx.fillStyle=grad(x,y+18,x+29,y+39,['#4fa4ce','#2473a9','#154969']);
+ rr(x+2,y+18,25,19,5);ctx.fill();
+ ctx.fillStyle='#f0c6a3';rr(x+4,y+5,22,18,6);ctx.fill();
+ // Short blond hair, not a hat: bright top and darker short strands.
+ ctx.fillStyle='#c99d38';rr(x+3,y+1,24,9,3);ctx.fill();
+ ctx.fillStyle='#f3db77';ctx.fillRect(x+5,y,20,6);
+ ctx.fillStyle='#ffe895';ctx.fillRect(x+9,y+1,12,3);
+ ctx.fillStyle='#d3ac43';ctx.fillRect(x+3,y+7,5,5);
+ ctx.fillStyle='#d3ac43';ctx.fillRect(x+23,y+6,4,5);
+ // Blue eyes with a white glint.
+ const eyeX=player.face>0?19:9;
+ ctx.fillStyle='#f9f9ec';ctx.fillRect(x+eyeX,y+12,6,5);
+ ctx.fillStyle='#277ed1';ctx.fillRect(x+eyeX+(player.face>0?3:0),y+13,3,4);
+ ctx.fillStyle='#132e50';ctx.fillRect(x+eyeX+(player.face>0?4:1),y+14,1,2);
+ ctx.fillStyle='#8f543a';ctx.fillRect(x+(player.face>0?22:8),y+19,5,1);
+ if(featherBuff){
+  polygon([[x-5,y+19],[x-1,y+3],[x+4,y+18]],'#fff6de');
+  polygon([[x+31,y+19],[x+36,y+3],[x+40,y+18]],'#fff6de');
+ }
+}
 function drawCat(){ if(!cat) return; const x = cat.x-cam, y = cat.y; const walk = Math.sin(frame/8) * Math.min(1, Math.abs(cat.vx)/18); const tail = cat.mood==='idle' ? Math.sin(frame/14)*0.45 : Math.sin(frame/7)*0.32; ellipse(x+13,y+18,16,4,'#0b10144f'); ctx.save(); ctx.translate(x,y); ctx.fillStyle='#111416'; rr(4,6+walk*0.4,22,10,6); ctx.fill(); rr(10,0,12,11,5); ctx.fill(); polygon([[11,2],[14,-4],[16,3]],'#111416'); polygon([[18,2],[22,-4],[22,4]],'#111416'); ctx.strokeStyle='#111416'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(24,10); ctx.quadraticCurveTo(34,3+tail*3,30,-9+tail*8); ctx.stroke(); ctx.fillStyle='#79d07b'; if(cat.blink > 6){ ctx.fillRect(13,4,2,2); ctx.fillRect(18,4,2,2); } else { ctx.fillRect(13,5,2,1); ctx.fillRect(18,5,2,1); } ctx.fillStyle='#d9b18c'; ctx.fillRect(15,8,3,2); ctx.strokeStyle='#84878a'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(14,9); ctx.lineTo(8,8); ctx.moveTo(14,10); ctx.lineTo(8,11); ctx.moveTo(19,9); ctx.lineTo(25,8); ctx.moveTo(19,10); ctx.lineTo(25,11); ctx.stroke(); ctx.fillStyle='#0d1114'; ctx.fillRect(7,16+(walk>0?0:0.8),3,6); ctx.fillRect(12,16+(walk<0?0:0.8),3,6); ctx.fillRect(18,16+(walk<0?0:0.8),3,6); ctx.fillRect(23,16+(walk>0?0:0.8),3,6); if(reward && reward.reached){ ctx.fillStyle='#fff5c8'; ctx.font='bold 11px system-ui'; ctx.fillText('mnjam', -2, -8); } ctx.restore(); }
 function drawMonster(e){ const x=e.x-cam,y=e.y; if(x<-45||x>W+45) return; ellipse(x+20,y+35,22,5,'#10241d66'); polygon([[x+30,y+14],[x+45,y+4],[x+38,y+24]],'#665046'); polygon([[x+4,y+12],[x+8,y-4],[x+18,y+8]],'#5c4541'); polygon([[x+23,y+8],[x+30,y-4],[x+36,y+12]],'#5c4541'); ctx.fillStyle=grad(x,y,x,y+35,['#af8474','#71534e','#483839']); rr(x,y+8,39,27,12); ctx.fill(); ellipse(x+11,y+19,5,5,'#f8edda'); ellipse(x+28,y+19,5,5,'#f8edda'); ellipse(x+12,y+20,2,3,'#1d2422'); ellipse(x+27,y+20,2,3,'#1d2422'); ctx.fillStyle='#f7e7dc'; for(let i=0;i<3;i++) polygon([[x+13+i*5,y+28],[x+17+i*5,y+28],[x+15+i*5,y+33]], '#f7e7dc'); }
 function drawTrap(t){ const x=t.x-cam; if(x+t.w<0||x>W) return; for(let i=0;i<t.w;i+=12){ const k=Math.min(12,t.w-i); polygon([[x+i,t.y],[x+i+k/2,t.y-t.h],[x+i+k,t.y]],'#444c4e'); polygon([[x+i+k/2,t.y-t.h],[x+i+k,t.y],[x+i+k/2,t.y-2]],'#b6c2c0'); } ctx.fillStyle='#514335'; ctx.fillRect(x,t.y,t.w,5); }
